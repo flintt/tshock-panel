@@ -704,7 +704,7 @@ func worldMaxspawnsHandler(w http.ResponseWriter, r *http.Request) {
 func worldSetspawnHandler(w http.ResponseWriter, r *http.Request) {
 	s := getSession(r)
 	if s == nil { http.Error(w, `{"error":"unauthorized"}`, 401); return }
-	result, err := rawcmdProxy("/setspawn", s)
+	result, err := rawcmdProxy("/setspawnrest", s)
 	if err != nil { http.Error(w, `{"error":"request failed"}`, 502); return }
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)

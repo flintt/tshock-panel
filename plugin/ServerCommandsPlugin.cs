@@ -51,6 +51,9 @@ namespace ServerCommands
                 Commands.ChatCommands.Add(new Command("tp.allothers", PartyCmd, "partyrest")
                     { AllowServer = true, HelpText = "Toggle party hat (server-safe)" });
 
+                Commands.ChatCommands.Add(new Command("setspawn", SetSpawnCmd, "setspawnrest")
+                    { AllowServer = true, HelpText = "Set spawn point (server-safe)" });
+
                 Console.WriteLine("[ServerCommands] Registered server-safe commands (AllowServer=true)");
             }
             catch (Exception ex)
@@ -268,6 +271,22 @@ namespace ServerCommands
                 {
                     args.Player.SendErrorMessage("/party command not found");
                 }
+            }
+            catch (Exception ex) { args.Player.SendErrorMessage("Error: " + ex.Message); }
+        }
+
+        private void SetSpawnCmd(CommandArgs args)
+        {
+            try
+            {
+                var player = args.Parameters.Count > 0 ? FindOnlinePlayer(args.Parameters[0]) : FindOnlinePlayer(null);
+                if (player == null) { args.Player.SendErrorMessage("Player not found"); return; }
+
+                int tileX = (int)(player.TPlayer.Center.X / 16);
+                int tileY = (int)(player.TPlayer.Center.Y / 16);
+                Main.spawnTileX = tileX;
+                Main.spawnTileY = tileY;
+                args.Player.SendInfoMessage("Spawn point set to (" + tileX + ", " + tileY + ").");
             }
             catch (Exception ex) { args.Player.SendErrorMessage("Error: " + ex.Message); }
         }
