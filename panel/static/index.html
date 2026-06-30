@@ -186,6 +186,9 @@ textarea{resize:vertical;min-height:60px}
 
 /* event active state */
 .qa button.on{box-shadow:0 0 0 2px var(--gold);color:var(--gold)}
+.npc-item{padding:2px 6px;cursor:pointer;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.npc-item:hover{background:var(--border)}
+.npc-item.npc-boss{color:var(--gold);font-weight:600}
 /* collapsible sections */
 .sec-collapsible{cursor:pointer;user-select:none}
 .sec-collapsible::after{content:'▾';margin-left:6px;font-size:10px;opacity:0.5;transition:transform .2s}
@@ -247,7 +250,7 @@ textarea{resize:vertical;min-height:60px}
           <button onclick="apiTime('midnight').then(r=>t(r.response?r.response.join(' '):'完成'))">🌃 午夜(0:00)</button>
           <button onclick="rc('/reload')">🔄 重载</button>
           <button onclick="healAll()">❤️ 全体治疗</button>
-          <button onclick="rc('/spawn')">📍 回出生点</button>
+          <button onclick="rc('/spawnrest')">📍 回出生点</button>
           <button onclick="apiMaxspawns()">🔽 刷怪上限</button>
           <button onclick="apiSetspawn().then(r=>t(r.response?r.response.join(' '):'完成'))">🏳 设出生点</button>
           <button onclick="openBc()" class="g">📢 广播</button>
@@ -351,23 +354,30 @@ textarea{resize:vertical;min-height:60px}
         <div class="collapsible-qa">
           <div class="qa">
             <input id="spawn-boss" placeholder="Boss ID..." style="width:80px">
-            <button onclick="rc('/spawnboss '+qs('#spawn-boss').value)">👹 生成Boss</button>
+            <button onclick="rc('/spawnbossrest '+qs('#spawn-boss').value)">👹 生成Boss</button>
             <input id="spawn-mob" placeholder="怪物ID 数量..." style="width:120px">
-            <button onclick="rc('/spawnmob '+qs('#spawn-mob').value)">👾 生成怪物</button>
+            <button onclick="rc('/spawnmobrest '+qs('#spawn-mob').value)">👾 生成怪物</button>
             <button onclick="rc('/renamenpc')">🏷 重命名NPC</button>
             <button onclick="rc('/bossdamage')">📊 显示Boss伤害</button>
           </div>
+          <div class="qa" style="margin-top:4px">
+            <select id="npc-cat-sel" onchange="filterNPCList()" style="width:110px;font-size:11px;padding:2px 4px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--fg)">
+              <option value="">全部分类</option>
+            </select>
+            <input id="npc-search" placeholder="搜索NPC名称/ID..." oninput="filterNPCList()" style="width:150px;font-size:11px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--fg)">
+          </div>
+          <div id="npc-list" style="max-height:200px;overflow-y:auto;font-size:11px;border:1px solid var(--border);border-radius:4px;padding:2px;margin-top:2px;background:var(--surface)"></div>
         </div>
         <div class="sec sec-collapsible" onclick="toggleSection(this)">传送 / 位置</div>
         <div class="collapsible-qa">
           <div class="qa">
-            <button onclick="rc('/home')">🏠 回家</button>
-            <button onclick="rc('/tpallow')">✅ 允许传送</button>
+            <button onclick="rc('/homerest')">🏠 回家</button>
+            <button onclick="rc('/tpallowrest')">✅ 允许传送</button>
             <input id="warp-name" placeholder="传送点..." style="width:100px">
             <button onclick="rc('/warp \"'+qs('#warp-name').value+'\"')">🌀 传送</button>
             <input id="tppos-x" placeholder="X" style="width:50px">
             <input id="tppos-y" placeholder="Y" style="width:50px">
-            <button onclick="rc('/tppos '+qs('#tppos-x').value+' '+qs('#tppos-y').value)">📍 传送到坐标</button>
+            <button onclick="rc('/tpposrest '+qs('#tppos-x').value+' '+qs('#tppos-y').value)">📍 传送到坐标</button>
           </div>
         </div>
         <div class="sec sec-collapsible" onclick="toggleSection(this)">玩家娱乐</div>
@@ -378,11 +388,11 @@ textarea{resize:vertical;min-height:60px}
             <button onclick="t('/rocket 需开启SSC才能使用','e')">🚀 火箭</button>
             <button onclick="rc('/firework \"'+selPlayers[0]+'\"')">🎆 烟花</button>
             <button onclick="rc('/rest')">🛌 休息</button>
-            <button onclick="rc('/party')">🎉 队伍</button>
+            <button onclick="rc('/partyrest')">🎉 队伍</button>
             <button onclick="rc('/me')">💬 表情</button>
             <button onclick="rc('/respawn')">🔄 复活</button>
             <input id="buff-name" placeholder="Buff ID..." style="width:80px">
-            <button onclick="rc('/buff '+qs('#buff-name').value)">✨ 给自己Buff</button>
+            <button onclick="rc('/buffrest '+qs('#buff-name').value)">✨ 给自己Buff</button>
             <input id="gbuff-name" placeholder="Buff ID 玩家..." style="width:140px">
             <button onclick="rc('/gbuff '+qs('#gbuff-name').value)">✨ 给玩家Buff</button>
           </div>
@@ -391,7 +401,7 @@ textarea{resize:vertical;min-height:60px}
         <div class="collapsible-qa">
           <div class="qa">
             <button onclick="toggleSwitch('godmode')">🛡 神模式</button>
-            <button onclick="rc('/grow')">🌿 催长植物</button>
+            <button onclick="rc('/growrest')">🌿 催长植物</button>
             <button onclick="rc('/evil')">☠ 蔓延腐化/血腥</button>
             <button onclick="rc('/forcehalloween')">🎃 强制万圣节</button>
             <button onclick="rc('/forcexmas')">🎄 强制圣诞节</button>
@@ -406,7 +416,7 @@ textarea{resize:vertical;min-height:60px}
         <div class="collapsible-qa">
           <div class="qa">
             <input id="item-self" placeholder="物品ID 数量..." style="width:120px">
-            <button onclick="rc('/item '+qs('#item-self').value)">🎁 给自己物品</button>
+            <button onclick="rc('/itemrest '+qs('#item-self').value)">🎁 给自己物品</button>
             <input id="itemban-name" placeholder="物品ID..." style="width:80px">
             <button onclick="rc('/itemban '+qs('#itemban-name').value)">🚫 封禁物品</button>
             <button onclick="rc('/projban')">🚫 弹幕封禁</button>
@@ -679,7 +689,7 @@ let ITEMS = [
   {id:593,n:"雪块",c:"build",r:0},{id:594,n:"雪砖",c:"build",r:0},{id:129,n:"灰砖",c:"build",r:0},{id:9,n:"木",c:"build",r:0},{id:25,n:"木门",c:"build",r:0},
   {id:75,n:"坠落之星",c:"other",r:0},{id:23,n:"凝胶",c:"other",r:0},{id:27,n:"橡实",c:"other",r:0},
 ];
-let BUFFS=[];let PREFIXES=[];let PREFIX_MAP={};window._editingPresetName=null;
+let BUFFS=[];let PREFIXES=[];let PREFIX_MAP={};let NPCDB=[];let NPC_CATS={};let NPC_CAT_ORDER=[];window._editingPresetName=null;
 async function loadFullDB(){
   try{
     const r=await fetch('/itemdb.json');const db=await r.json();
@@ -706,6 +716,44 @@ async function loadPrefixDB(){
       PREFIX_MAP[itemCat]=PREFIXES.filter(p=>!p.t||prefixTs.includes(p.t)||p.id===0).map(p=>p.id);
     }
   }catch(e){}
+}
+async function loadNPCDB(){
+  try{
+    const r=await fetch('/npcdb.json');const db=await r.json();
+    if(db.npcs)NPCDB=db.npcs;
+    if(db.categories)NPC_CATS=db.categories;
+    if(db.catOrder)NPC_CAT_ORDER=db.catOrder;
+    const sel=qs('#npc-cat-sel');
+    if(sel&&NPC_CAT_ORDER.length){
+      sel.innerHTML=NPC_CAT_ORDER.map(c=>'<option value="'+c+'">'+NPC_CATS[c]+'</option>').join('');
+      filterNPCList();
+    }
+  }catch(e){}
+}
+function filterNPCList(){
+  const cat=qs('#npc-cat-sel').value;
+  const q=qs('#npc-search').value.trim().toLowerCase();
+  const list=qs('#npc-list');
+  const all=NPCDB;
+  const filtered=all.filter(n=>{
+    if(cat&&n.c!==cat)return false;
+    if(q&&!(n.n.toLowerCase().includes(q)||String(n.id).includes(q)))return false;
+    return true;
+  });
+  list.innerHTML=filtered.map(n=>{
+    const d=n.d?' <span style="color:var(--dim);font-size:10px">'+esc(n.d)+'</span>':'';
+    const isBoss=n.c.startsWith('boss');
+    return '<div class="npc-item'+(isBoss?' npc-boss':'')+'" onclick="selectNPC('+n.id+',\''+esc(n.n).replace(/'/g,"\\'")+'\',\''+n.c+'\')" title="ID: '+n.id+(n.d?'\n'+n.d:'')+'">'+n.id+' - '+esc(n.n)+d+'</div>';
+  }).join('');
+}
+function selectNPC(id,name,cat){
+  if(cat&&cat.startsWith('boss')){
+    qs('#spawn-boss').value=id;
+  }else{
+    qs('#spawn-mob').value=id;
+  }
+  qs('#npc-search').value=name;
+  filterNPCList();
 }
 
 function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
@@ -2938,7 +2986,7 @@ async function loadWorldState(){
 
 // Init
 function init(){
-  initSections();loadGroupOptions();loadUsers();loadGroups();loadWorldList();loadPresets();loadBuffDB();loadPrefixDB();loadFullDB();
+  initSections();loadGroupOptions();loadUsers();loadGroups();loadWorldList();loadPresets();loadBuffDB();loadPrefixDB();loadFullDB();loadNPCDB();
   if(!window._jtD)window._jtD=setInterval(updateJoinTimeDisplay,1000);
   for(const[name,state]of Object.entries(evtState)){
     const b=qs('[data-evt="'+name+'"]');

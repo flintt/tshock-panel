@@ -75,13 +75,98 @@ TShock Web Panel 是一个基于 Web 的 Terraria 服务器管理面板，通过
 
 ### 前置要求
 
-- Docker 20.10+
-- 2GB+ 内存
+- **操作系统**：Linux（Ubuntu 22.04/24.04 推荐）
+- **Docker** 20.10+（含 Docker Compose）
+- **Go** 1.21+（编译面板后端）
+- **.NET SDK** 8.0+（编译 TShock 插件，需包含 Roslyn csc.dll）
+- **内存**：2GB+（TShock 服务器 + 面板容器）
+
+### 编译环境详解
+
+本项目包含两个需要编译的组件，编译环境必须在**宿主机**上准备（Dockerfile 不编译，只复制预编译产物）。
+
+#### 1. Go 编译环境（面板后端）
+
+| 项目 | 说明 |
+|------|------|
+| 语言 | Go 1.21+ |
+| 依赖 | `github.com/gorilla/websocket v1.5.3`（go.mod 已声明） |
+| 编译命令 | `CGO_ENABLED=0 go build -o panel main.go` |
+| `CGO_ENABLED=0` | **必须**，面板容器基于 alpine（无 glibc），需要纯静态链接 |
+| 产物 | `panel` 二进制文件（Linux amd64） |
+| 安装方式 | `apt install golang-go` 或从 https://go.dev/dl/ 下载 |
+
+#### 2. .NET SDK 编译环境（TShock 插件）
+
+| 项目 | 说明 |
+|------|------|
+| 语言 | C# / .NET 9.0 运行时 |
+| SDK | .NET SDK 8.0+（包含 Roslyn csc.dll） |
+| 编译方式 | **必须使用 csc 直接编译**，不能用 `dotnet build` |
+| `dotnet build` 问题 | 会优化掉 TerrariaServer/OTAPI 程序集引用，TShock 静默跳过加载 |
+| csc 路径 | `/usr/lib/dotnet/sdk/<版本>/Roslyn/bincore/csc.dll` |
+| 产物 | `TeleportRestPlugin.dll`（.NET 类库） |
+| 安装方式 | `apt install dotnet-sdk-8.0` 或从 https://dotnet.microsoft.com/ 下载 |
+
+**csc 编译参数：**
+
+```bash
+CSC=$(find /usr/lib/dotnet/sdk -name "csc.dll" -path "*/Roslyn/*" | head -1)
+
+# 引用列表：
+# - /tmp/net9rt/*.dll          — .NET 9 运行时 DLL（从 TShock 容器提取）
+# - TerrariaServer.dll         — Terraria 服务端主程序集（从容器提取）
+# - OTAPI.dll                  — OTAPI 框架（从容器提取）
+# - OTAPI.Runtime.dll          — OTAPI 运行时（从容器提取）
+# - TShockAPI.dll              — TShock API（从容器提取）
+
+dotnet $CSC \
+  -target:library \            # 编译为 DLL
+  -nostdlib+ \                 # 不自动引用标准库
+  -reference:... \             # 所有依赖 DLL
+  -out:plugins/TeleportRestPlugin.dll \
+  plugin/TeleportRestPlugin.cs
+```
+
+> **注意**：依赖 DLL 需要从运行中的 TShock 容器提取（`docker cp`），首次部署需先启动 TShock 容器一次以获取这些文件。
+
+#### 3. 编译顺序与依赖关系
+
+```
+┌──────────────────┐     ┌──────────────────┐
+│  1. 启动 TShock   │────▶│  2. 提取依赖 DLL  │
+│     容器（首次）   │     │     docker cp     │
+└──────────────────┘     └────────┬─────────┘
+                                  │
+                                  ▼
+┌──────────────────┐     ┌──────────────────┐
+│  4. 编译 Go 面板  │     │  3. 编译插件 DLL  │
+│     go build      │     │     csc           │
+└────────┬─────────┘     └────────┬─────────┘
+         │                        │
+         ▼                        ▼
+┌──────────────────────────────────────────┐
+│  5. docker-compose up -d                 │
+│     面板容器 COPY 二进制，TShock 加载插件  │
+└──────────────────────────────────────────┘
+```
+
+### 一键环境准备
+
+项目根目录提供 `setup.sh` 脚本，自动完成环境安装、编译和首次部署：
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+详见脚本内注释。
 
 ### 目录结构
 
 ```
 /root/terraria-server/
+├── setup.sh                  # 一键环境准备脚本
 ├── docker-compose.yml
 ├── panel/
 │   ├── main.go              # Go 后端
@@ -125,6 +210,52 @@ TShock Web Panel 是一个基于 Web 的 Terraria 服务器管理面板，通过
    ```
    http://your-server-ip:4891
    ```
+
+### 首次启动注意事项
+
+- **世界生成耗时**：使用 `-autocreate` 首次启动时，TShock 需 1-2 分钟生成世界（小世界约 60 秒，大世界可达 2 分钟），期间客户端无法连接。查看日志中 `Server started` 表示生成完成。
+- **TShock 配置必须预配置**：`tshock/config.json` 中的 `RestApiEnabled: true` 和 `ApplicationRestTokens` 必须在首次启动前配好，否则面板无法连接 REST API。
+- **Panel 登录**：面板本身无固定密码，登录时输入任意用户名和密码即可通过（Panel 只验证 TShock App Token 连通性）。但建议输入 TShock 中已注册的 superadmin 账号凭据，以便后续 Token 自动刷新时能正确调用 TShock 用户认证 API。
+
+### 多实例并行部署
+
+同一台服务器可运行多套 TShock + Panel 实例，需修改以下内容：
+
+| 配置项 | 实例1（默认） | 实例2 |
+|--------|--------------|-------|
+| 游戏端口映射 | `7777:7777` | `7778:7777` |
+| REST 端口映射 | `7878:7878` | `7879:7878` |
+| 面板端口映射 | `4891:4891` | `4892:4892` |
+| `container_name`（terraria） | `terraria-server` | `terraria-server2` |
+| `container_name`（panel） | `terraria-panel` | `terraria-panel2` |
+| `NETWORK_NAME` | `terraria-server_default` | `terraria-server2_default` |
+| `HOST_BASE_PATH` | `/root/terraria-server` | `/root/terraria-server2` |
+| `TSHOCK_API_URL` | `http://terraria-server:7878` | `http://terraria-server2:7878` |
+| `PANEL_PORT` | `4891` | `4892` |
+
+**部署步骤：**
+
+```bash
+# 1. 创建目录
+mkdir -p /root/terraria-server2/{panel/static,plugin,plugins,tshock,worlds,presets,trails,worldbackups}
+
+# 2. 复制源码和配置
+cp panel/main.go panel/go.mod panel/go.sum panel/Dockerfile /root/terraria-server2/panel/
+cp panel/static/* /root/terraria-server2/panel/static/
+cp plugin/TeleportRestPlugin.cs /root/terraria-server2/plugin/
+cp tshock/config.json tshock/sscconfig.json /root/terraria-server2/tshock/
+touch /root/terraria-server2/tshock/setup.lock
+
+# 3. 编译面板和插件
+cd /root/terraria-server2/panel && CGO_ENABLED=0 go build -o panel main.go
+# 插件编译见 plugin/PLUGIN_SOLUTION.md
+
+# 4. 准备 docker-compose.yml（按上表修改端口和名称）
+# 5. 启动
+cd /root/terraria-server2 && docker-compose up -d
+```
+
+**注意**：每个实例的 `tshock/config.json` 中 `RestApiPort` 保持 `7878` 不变（容器内部端口），端口差异通过 Docker 映射解决。
 
 ---
 
@@ -900,7 +1031,7 @@ cd /root/terraria-server && docker stop terraria-panel && docker rm terraria-pan
 | 2.2.0 | 2026-06-27 | 玩家上下线实时检测：后端 streamLogs 解析 TShock 日志 Broadcast 行，检测 has joined/has left 事件，实时推送 player_join/player_leave WS 事件；前端即时更新玩家列表和 DOM（不再依赖 5 秒轮询）；joinTimes 在日志解析时记录/清除；streamStatus 5 秒轮询保留为同步校准；修复 parsePlayerEvent 误识别 Utils/Broadcast 为玩家名（只匹配 Broadcast: 行，去掉 (N/A) 后缀） |
 | 2.3.0 | 2026-06-27 | 亮色主题对比度修复（--dim #8888a0→#5a5a72, --green/--cyan/--gold/--red/--orange 全部调深）；select 下拉箭头改用 var(--dim) 跟随主题；预设列表改为卡片布局（名称+操作在顶部一行，物品列表在下方独立展开，不再因物品多导致名称换行）；新建预设时清空编辑器（修复上一次编辑内容残留）；编辑预设时不再被 showCreatePreset 清空（非编辑模式才清空）；WS status_update 无 players 时清空 joinTimes 防止列表残留；传送按钮改为弹出玩家列表选择目标（📍拉=把某人拉到该玩家身边，📍去=该玩家去某人身边）；传送功能待完成：TShock /tp 命令 AllowServer=false 限制 REST API 执行，需二进制 patch TShockAPI.dll 或编写传送插件绕过（补丁已准备好，待部署） |
 | 2.4.0 | 2026-06-28 | 玩家轨迹系统：后端 trackPlayerTrails goroutine 每5秒轮询 TShock /v3/players/read 获取在线玩家坐标，存储最多1000个 TrailPoint{x,y,time}（TRAIL_MAX_PER_PLAYER 环境变量配置），玩家下线保留轨迹不自动清除；轨迹持久化到 ./trails/ 目录（每10秒自动保存，启动时加载，SIGTERM 时保存）；GET /api/player/trail?player=NAME&count=N（count=0返回全部）；POST /api/player/trail/clear（支持指定玩家/离线/全部清除）；前端 Canvas 可视化轨迹（渐变线+起止点标注+网格线）；传送线过滤（距离>200格断开连线）；其他在线玩家位置标注（青色圆点+名称坐标）；缩放（鼠标滚轮0.5×~20×）+平移（鼠标/触摸拖拽）；缩放保持（范围变化<10%保留缩放/平移）；控制按钮（复位/清此玩家/清离线/清全部）；显示数量下拉（50/100/200/500/全部）；玩家信息+轨迹改为 WS 传输（player_info 消息类型，WS 断开回退 HTTP 轮询）；HTTP 客户端添加10秒超时防阻塞；docker-compose 新增 trails 卷挂载和 init:true；Dockerfile 新增 STOPSIGNAL；修复 gsY 未定义变量（→gs）；修复 loadOtherPlayerPositions() 未被定时器调用；修复 trail 为空时不应隐藏 canvas；修复 Dockerfile 只复制旧二进制不编译的问题（部署需先 go build） |
-| 2.5.0 | 2026-06-28 | TeleportRestPlugin 插件：注册 `/tprest` 命令（AllowServer=true），绕过 TShock 内置 `/tp` 的 AllowServer=false 限制；插件使用 `Teleport(Vector2, bool useBottom, byte style)` 重载（useBottom=true），修复传送偏移（头脚错位+水平偏移）；面板后端 playerTpHandler 改为调用 `/tprest from to`；前端传送改为 WS 优先（player_tp 消息类型，WS 断开回退 HTTP rc()）；插件编译必须使用 csc（非 dotnet build）以保留程序集引用（详见 plugin/PLUGIN_SOLUTION.md） |
+| 2.5.0 | 2026-06-28 | TeleportRestPlugin 插件：注册 `/tprest` 命令（AllowServer=true），绕过 TShock 内置 `/tp` 的 AllowServer=false 限制；插件使用 `Teleport(Vector2, bool useBottom, byte style)` 重载（useBottom=true），修复传送偏移（头脚错位+水平偏移）；面板后端 playerTpHandler 改为调用 `/tprest from to`；前端传送改为 WS 优先（player_tp 消息类型，WS 断开回退 HTTP rc()）；插件编译必须使用 csc（非 dotnet build）以保留程序集引用（详见 plugin/PLUGIN_SOLUTION.md）；手册新增首次启动注意事项和多实例并行部署说明 |
 
 ---
 
