@@ -77,6 +77,9 @@ textarea{resize:vertical;min-height:60px}
 .pc .i .n{font-weight:600;font-size:13px}
 .pc .i .g{font-size:10px;padding:0 5px;border-radius:3px;background:var(--surface);color:var(--cyan)}
 .pc .i .h{font-size:11px;color:var(--dim)}
+.pc .i .hm{font-size:10px;margin-left:2px}
+.pc .i .hm .hp{color:var(--red)}
+.pc .i .hm .mp{color:var(--cyan)}
 .pc .a{display:flex;gap:2px;flex-shrink:0}
 .pc .a button{height:24px;padding:0 6px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim);white-space:nowrap}
 .pc .a button:hover{color:var(--text);background:var(--border)}
@@ -927,8 +930,11 @@ function updateStatusFromWS(data){
 
 function updatePlayersFromWS(data){
   if(!data||!data.players)return;
-  // Update player list from WS data
-  const names=data.players.filter(p=>p.active).map(p=>({name:p.nickname||p.username}));
+  const names=data.players.filter(p=>p.active).map(p=>{
+    const obj={name:p.nickname||p.username};
+    if(p.hp!==undefined){obj.hp=p.hp;obj.hpMax=p.hpMax;obj.mp=p.mp;obj.mpMax=p.mpMax}
+    return obj;
+  });
   if(names.length>=0){
     players=names;
     qs('#pc').textContent='('+players.length+' 人)';
@@ -1823,7 +1829,7 @@ function renderPlayers(container, selbar){
     d.innerHTML=`
       <input type="checkbox" ${selPlayers.includes(p.name)?'checked':''} onchange="toggleSel('${esc(p.name)}',this.checked)">
       <div class="i" onclick="event.stopPropagation();showPi('${esc(p.name)}')" style="cursor:pointer">
-        <span class="n">${esc(p.name)}</span>${gn}<span class="h" id="lt-${esc(p.name)}"></span>
+        <span class="n">${esc(p.name)}</span>${gn}<span class="h" id="lt-${esc(p.name)}"></span><span class="hm" id="hm-${esc(p.name)}"></span>
       </div>
       <div class="a">
         <button class="gn" onclick="event.stopPropagation();openGiveFor('${esc(p.name)}')" title="给物品">🎁</button>
@@ -2404,6 +2410,10 @@ function updateJoinTimeDisplay(){
     if(h>0)el.textContent=' · '+h+'时'+(min%60)+'分';
     else if(min>0)el.textContent=' · '+min+'分'+(sec%60)+'秒';
     else el.textContent=' · '+sec+'秒';
+    const hmel=qs('#hm-'+CSS.escape(p.name));
+    if(hmel&&p.hp!==undefined){
+      hmel.innerHTML=' <span class="hp">❤'+p.hp+'/'+p.hpMax+'</span> <span class="mp">💎'+p.mp+'/'+p.mpMax+'</span>';
+    }
   });
 }
 async function loadLoginTimes(){}

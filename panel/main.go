@@ -2153,6 +2153,46 @@ func streamStatus(conn *websocket.Conn, s *Session, done chan struct{}, writeJSO
 				}
 			}
 
+			// Get HP/MP data
+			hpMpData := make(map[string]map[string]int)
+			resp5, err := http.Get(fmt.Sprintf("%s/server/rawcmd?token=%s&cmd=%s", apiURL, s.Token, url.QueryEscape("/hpmplist")))
+			if err == nil {
+				b5, _ := io.ReadAll(resp5.Body)
+				resp5.Body.Close()
+				var hpcmd map[string]interface{}
+				json.Unmarshal(b5, &hpcmd)
+				if resp, ok := hpcmd["response"].([]interface{}); ok && len(resp) > 0 {
+					if hpStr, ok := resp[0].(string); ok {
+						for _, entry := range strings.Split(hpStr, ",") {
+							parts := strings.Split(entry, ":")
+							if len(parts) == 2 {
+								name := parts[0]
+								vals := strings.Split(parts[1], "/")
+								if len(vals) == 4 {
+									var hp, hpMax, mp, mpMax int
+									fmt.Sscanf(vals[0], "%d", &hp)
+									fmt.Sscanf(vals[1], "%d", &hpMax)
+									fmt.Sscanf(vals[2], "%d", &mp)
+									fmt.Sscanf(vals[3], "%d", &mpMax)
+									hpMpData[name] = map[string]int{"hp": hp, "hpMax": hpMax, "mp": mp, "mpMax": mpMax}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Merge HP/MP into player data
+			for _, pm := range players {
+				nickname, _ := pm["nickname"].(string)
+				if hpm, ok := hpMpData[nickname]; ok {
+					pm["hp"] = hpm["hp"]
+					pm["hpMax"] = hpm["hpMax"]
+					pm["mp"] = hpm["mp"]
+					pm["mpMax"] = hpm["mpMax"]
+				}
+			}
+
 			joinMu.Lock()
 			for _, pm := range players {
 				nickname, _ := pm["nickname"].(string)

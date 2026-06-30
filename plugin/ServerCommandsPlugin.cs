@@ -54,6 +54,9 @@ namespace ServerCommands
                 Commands.ChatCommands.Add(new Command("setspawn", SetSpawnCmd, "setspawnrest")
                     { AllowServer = true, HelpText = "Set spawn point (server-safe)" });
 
+                Commands.ChatCommands.Add(new Command("tp.allothers", HpMpListCmd, "hpmplist")
+                    { AllowServer = true, HelpText = "List HP/MP for all online players" });
+
                 Console.WriteLine("[ServerCommands] Registered server-safe commands (AllowServer=true)");
             }
             catch (Exception ex)
@@ -287,6 +290,23 @@ namespace ServerCommands
                 Main.spawnTileX = tileX;
                 Main.spawnTileY = tileY;
                 args.Player.SendInfoMessage("Spawn point set to (" + tileX + ", " + tileY + ").");
+            }
+            catch (Exception ex) { args.Player.SendErrorMessage("Error: " + ex.Message); }
+        }
+
+        private void HpMpListCmd(CommandArgs args)
+        {
+            try
+            {
+                var parts = new List<string>();
+                foreach (var p in TShock.Players)
+                {
+                    if (p != null && p.RealPlayer && p.TPlayer != null)
+                    {
+                        parts.Add(p.Name + ":" + p.TPlayer.statLife + "/" + p.TPlayer.statLifeMax + "/" + p.TPlayer.statMana + "/" + p.TPlayer.statManaMax);
+                    }
+                }
+                args.Player.SendInfoMessage(string.Join(",", parts));
             }
             catch (Exception ex) { args.Player.SendErrorMessage("Error: " + ex.Message); }
         }
