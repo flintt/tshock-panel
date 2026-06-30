@@ -1,0 +1,10 @@
+panel/panel
+plugins/*.dll
+plugins/*.deps.json
+tshock/
+worlds/
+worldbackups/
+presets/
+trails/
+backups/
+*.bak

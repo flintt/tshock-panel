@@ -1,0 +1,2964 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TShock Panel</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0b14;--card:#151528;--surface:#1c1c38;--border:#2a2a4a;
+  --text:#c8c8d4;--dim:#6a6a8a;--green:#00e676;--cyan:#00bcd4;
+  --gold:#ffd740;--red:#ff5252;--orange:#ff9100;--radius:8px;
+}
+body.l{--bg:#eef0f6;--card:#fff;--surface:#e2e4ec;--border:#c8cae0;--text:#1c1e28;--dim:#5a5a72;--green:#00b85c;--cyan:#0097a7;--gold:#c6a000;--red:#d32f2f;--orange:#e65100}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;overflow:hidden}
+input,select,button{font:inherit;color:inherit}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+#top{height:42px;display:flex;align-items:center;padding:0 12px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px}
+#top .logo{font-weight:700;font-size:14px;color:var(--green)}
+#top .logo span{color:var(--dim)}
+#top .s{font-size:12px;color:var(--dim)}#top .s i{color:var(--cyan);font-style:normal}
+#top .r{margin-left:auto;display:flex;gap:8px;font-size:12px;align-items:center}
+#top .r .lo{cursor:pointer;color:var(--dim)}#top .r .lo:hover{color:var(--red)}
+
+#bd{display:flex;flex:1;min-height:0}
+#sb{width:42px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:6px 0;gap:2px;flex-shrink:0}
+.nb{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:var(--dim);border:none;background:transparent}
+.nb:hover{color:var(--green);background:var(--surface)}
+.nb.on{color:var(--green);background:var(--surface)}
+
+#main{flex:1;overflow-y:auto;padding:12px}
+.t{display:none}.t.on{display:block}
+
+/* stat cards */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:10px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;text-align:center}
+.sc .v{font-size:20px;font-weight:700;color:var(--cyan)}
+.sc .l{font-size:11px;color:var(--dim);margin-top:2px}
+
+/* quick actions */
+.qa{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.qa button,.qa select,.qa input{height:30px;padding:0 12px;border-radius:5px;border:1px solid var(--border);cursor:pointer;font-size:12px;background:var(--surface);color:var(--text)}
+.qa button:hover{color:var(--text);background:var(--border)}
+.qa button.g{background:var(--green);color:#000;font-weight:600}
+.qa button.g:hover{opacity:.9}
+.qa select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='var(--dim)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:24px}
+.qa input{cursor:text;padding:0 8px}
+
+/* form inputs */
+input[type=text],input[type=number],input[type=password],select,textarea{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:6px 10px;font-size:12px;color:var(--text);outline:none;transition:border-color .2s
+}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus,select:focus,textarea:focus{
+  border-color:var(--cyan)
+}
+select{
+  appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='var(--dim)' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;padding-right:24px;cursor:pointer
+}
+textarea{resize:vertical;min-height:60px}
+#preset-search-results{position:absolute;z-index:50;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);max-height:200px;overflow-y:auto;width:calc(100% - 20px);box-shadow:0 4px 12px rgba(0,0,0,0.3);display:none}
+#preset-search-results .sr{padding:6px 10px;font-size:12px;cursor:pointer;display:flex;justify-content:space-between}
+#preset-search-results .sr:hover{background:var(--surface)}
+#preset-search-results .sr .sn{color:var(--text)}
+#preset-search-results .sr .si{color:var(--dim);font-size:11px}
+
+/* player list */
+.sec{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sec small{font-weight:400;color:var(--dim);font-size:12px}
+.pl{display:flex;flex-direction:column;gap:4px}
+.pc{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;display:flex;align-items:center;gap:8px;transition:.1s;cursor:default}
+.pc:hover{border-color:var(--green)}
+.pc.sel{border-color:var(--cyan);background:var(--surface)}
+.pc input[type=checkbox]{width:14px;height:14px;accent-color:var(--cyan);cursor:pointer;flex-shrink:0}
+.pc .i{flex:1;min-width:0;display:flex;align-items:center;gap:6px}
+.pc .i .n{font-weight:600;font-size:13px}
+.pc .i .g{font-size:10px;padding:0 5px;border-radius:3px;background:var(--surface);color:var(--cyan)}
+.pc .i .h{font-size:11px;color:var(--dim)}
+.pc .a{display:flex;gap:2px;flex-shrink:0}
+.pc .a button{height:24px;padding:0 6px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim);white-space:nowrap}
+.pc .a button:hover{color:var(--text);background:var(--border)}
+.pc .a button.gn:hover{background:var(--green);color:#000}
+.pc .a button.cy:hover{background:var(--cyan);color:#000}
+.pc .a button.re:hover{background:var(--red);color:#fff}
+.pc .a button.go:hover{background:var(--gold);color:#000}
+
+/* selection bar */
+.sb{height:36px;display:none;align-items:center;padding:0 10px;margin-top:6px;gap:6px;background:var(--surface);border-radius:var(--radius)}
+.sb.on{display:flex}
+.sb .c{font-size:11px;color:var(--dim)}
+.sb button{height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--border);color:var(--text)}
+.sb button:hover{opacity:.85}
+.sb button.gn{background:var(--green);color:#000;font-weight:600}
+.sb button.cy{background:var(--cyan);color:#000}
+.sb button.re{background:var(--red);color:#fff}
+.sb button.go{background:var(--gold);color:#000}
+
+/* bottom */
+#bt{height:38px;display:flex;align-items:center;padding:0 8px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;gap:4px}
+#bt input{flex:1;height:26px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 8px;font-size:12px;outline:none}
+#bt input:focus{border-color:var(--cyan)}
+#bt .b{height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--surface);color:var(--dim)}
+#bt .b:hover{color:var(--text);background:var(--border)}
+#bt .b.g{background:var(--green);color:#000;font-weight:600}
+#bt .b.g:hover{opacity:.9}
+#bt .sp{width:1px;height:14px;background:var(--border)}
+
+/* login */
+#lg{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+#lg.h{display:none}
+#lb{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;width:300px}
+#lb h1{font-size:17px;margin-bottom:4px}
+#lb p{color:var(--dim);font-size:12px;margin-bottom:14px}
+#lb input{width:100%;height:36px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:0 10px;margin-bottom:6px;outline:none;font-size:13px}
+#lb input:focus{border-color:var(--cyan)}
+#lb button{width:100%;height:36px;border:none;border-radius:6px;background:var(--green);color:#000;font-weight:600;cursor:pointer;font-size:13px}
+#lb button:hover{opacity:.9}
+#lb .e{color:var(--red);font-size:12px;margin-top:6px;display:none}
+
+/* modal */
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50}
+.mo.on{display:flex}
+.mi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;min-width:340px;max-width:460px;max-height:80vh;overflow-y:auto}
+.mi h3{font-size:14px;margin-bottom:10px}
+.mi label{font-size:12px;color:var(--dim);display:block;margin:8px 0 3px}
+.mi input,.mi select{width:100%;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:0 8px;outline:none;font-size:13px}
+.mi input:focus{border-color:var(--gold)}
+.mi .mb{margin-top:12px;display:flex;gap:6px;justify-content:flex-end}
+.mi .mb button{padding:6px 14px;border:none;border-radius:5px;cursor:pointer;font-size:12px}
+.mi .mb .c{background:var(--surface);color:var(--dim)}
+.mi .mb .c:hover{color:var(--text)}
+.mi .mb .o{background:var(--green);color:#000;font-weight:600}
+.mi .mb .o:hover{opacity:.9}
+#ir{max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:5px;display:none;font-size:12px}
+#ir.on{display:block}
+#ir div{padding:5px 8px;cursor:pointer;display:flex;justify-content:space-between}
+#ir div:hover,#ir div.s{background:var(--surface);color:var(--gold)}
+#ir div .ii{color:var(--dim);font-size:11px}
+#its{width:100%;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:0 8px;outline:none;font-size:13px;margin-bottom:6px}
+#its:focus{border-color:var(--gold)}
+
+/* item inventory grid */
+.itg{padding:6px 0}
+.itg input{width:100%;height:30px;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:0 8px;outline:none;font-size:12px;margin-bottom:6px}
+.itg input:focus{border-color:var(--gold)}
+.ct{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px}
+.ct button{height:24px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim);white-space:nowrap}
+.ct button:hover,.ct button.on{background:var(--border);color:var(--text)}
+.ig{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:4px;max-height:260px;overflow-y:auto;padding:2px}
+.ig .it{border:1px solid var(--border);border-radius:5px;padding:5px 4px;cursor:pointer;text-align:center;font-size:10px;transition:.1s;background:var(--surface)}
+.ig .it:hover{border-color:var(--cyan);background:var(--card)}
+.ig .it.sel{border-color:var(--gold);background:var(--card)}
+.ig .it .in{color:var(--text);line-height:1.3;word-break:break-all}
+.ig .it .ii{color:var(--dim);font-size:9px;margin-top:2px}
+/* rarity borders */
+.ig .it.r0{border-left:3px solid #666}
+.ig .it.r1{border-left:3px solid #4caf50}
+.ig .it.r2{border-left:3px solid #2196f3}
+.ig .it.r3{border-left:3px solid #9c27b0}
+.ig .it.r4{border-left:3px solid #ff9800}
+#gm-info{font-size:12px;padding:4px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#gm-info .sel-name{color:var(--gold)}
+#gm-info .sel-none{color:var(--dim)}
+#gm-iq{width:60px;height:28px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 6px;outline:none;font-size:12px;text-align:center}
+#gm-iq:focus{border-color:var(--gold)}
+
+/* toast */
+#tt{position:fixed;top:48px;right:12px;z-index:200;display:flex;flex-direction:column;gap:4px;pointer-events:none}
+.tt{padding:7px 12px;border-radius:6px;background:var(--card);border:1px solid var(--border);font-size:12px;animation:si .2s;pointer-events:auto;max-width:300px}
+.tt.o{border-color:var(--green)}
+.tt.e{border-color:var(--red)}
+.tt.i{border-color:var(--cyan)}
+@keyframes si{from{opacity:0;transform:translateX(12px)}}
+
+#np{text-align:center;color:var(--dim);padding:30px 0;font-size:13px}
+
+.item-chip{display:inline-block;font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surface);margin:2px}
+
+/* confirm bar */
+#confirm-bar{position:fixed;bottom:-50px;left:0;right:0;z-index:100;transition:bottom .25s;height:36px;padding:0 12px;display:flex;align-items:center;gap:8px;background:var(--card);border-top:1px solid var(--border)}
+#confirm-bar.on{bottom:42px}
+/* spinner */
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* event active state */
+.qa button.on{box-shadow:0 0 0 2px var(--gold);color:var(--gold)}
+/* collapsible sections */
+.sec-collapsible{cursor:pointer;user-select:none}
+.sec-collapsible::after{content:'▾';margin-left:6px;font-size:10px;opacity:0.5;transition:transform .2s}
+.sec-collapsible.closed::after{transform:rotate(-90deg)}
+.collapsible-qa{display:block;margin-bottom:8px}
+.collapsible-qa.closed{display:none}
+/* autocomplete */
+#ac{position:absolute;bottom:100%;left:8px;right:8px;max-height:200px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:6px;display:none;z-index:60}
+#ac.on{display:block}
+#ac div{padding:6px 10px;font-size:12px;cursor:pointer}
+#ac div:hover,#ac div.s{background:var(--surface);color:var(--gold)}
+#bt-wrap{position:relative}
+
+/* filter */
+.fb{display:flex;gap:3px;align-items:center}
+.fb button{height:22px;padding:0 7px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim)}
+.fb button:hover,.fb button.on{background:var(--border);color:var(--text)}
+
+/* qty buttons */
+.qb{display:inline-flex;gap:3px;margin:0 6px}
+.qb button{height:22px;padding:0 6px;border:none;border-radius:3px;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim);min-width:22px}
+.qb button:hover{background:var(--border);color:var(--text)}
+.qb button.on{background:var(--green);color:#000}
+
+/* log */
+#log-box{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;font-size:12px;font-family:monospace;max-height:500px;overflow-y:auto;white-space:pre-wrap;line-height:1.5}
+#log-box .e{color:var(--red)}
+#log-box .o{color:var(--green)}
+#log-box .i{color:var(--cyan)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <div class="logo">TS<span>hock</span></div>
+    <div class="s"><i>●</i> <span id="oc">0</span> 在线</div>
+    <div class="s"><i>●</i> <span id="wn">-</span></div>
+    <div class="r"><span id="un"></span><span class="lo" onclick="toggleTheme()" id="tb" title="切换主题">🌓</span><span class="lo" onclick="logout()">登出</span></div>
+  </div>
+  <div id="bd">
+    <div id="sb">
+      <button class="nb on" data-t="main" title="概览">🏠</button>
+      <button class="nb" data-t="users" title="用户/组">👥</button>
+      <button class="nb" data-t="actions" title="操作">🖥</button>
+      <button class="nb" data-t="log" title="日志">📋</button>
+      <div style="flex:1"></div>
+    </div>
+    <div id="main">
+      <!-- MAIN -->
+      <div class="t on" id="t-main">
+        <div class="sg" id="sg"></div>
+        <div class="sec" style="margin-top:4px">快捷操作</div>
+        <div class="qa">
+          <button onclick="rc('/save')" class="g">💾 保存</button>
+          <button onclick="rc('/butcher')">🗡 屠NPC</button>
+          <button onclick="apiTime('day').then(r=>t(r.response?r.response.join(' '):'完成'))">☀ 白天(4:30)</button>
+          <button onclick="apiTime('night').then(r=>t(r.response?r.response.join(' '):'完成'))">🌙 夜晚(19:30)</button>
+          <button onclick="apiTime('noon').then(r=>t(r.response?r.response.join(' '):'完成'))">🌞 正午(12:00)</button>
+          <button onclick="apiTime('midnight').then(r=>t(r.response?r.response.join(' '):'完成'))">🌃 午夜(0:00)</button>
+          <button onclick="rc('/reload')">🔄 重载</button>
+          <button onclick="healAll()">❤️ 全体治疗</button>
+          <button onclick="rc('/spawn')">📍 回出生点</button>
+          <button onclick="apiMaxspawns()">🔽 刷怪上限</button>
+          <button onclick="apiSetspawn().then(r=>t(r.response?r.response.join(' '):'完成'))">🏳 设出生点</button>
+          <button onclick="openBc()" class="g">📢 广播</button>
+          <button onclick="if(confirm('确认关服？'))rc('/save');rc('/off')">⏻ 关服</button>
+          <button onclick="if(confirm('确认重启服务器？'))rc('/restart')">🔄 重启</button>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">装备预设</div>
+        <div class="collapsible-qa">
+          <div id="preset-list" style="margin-bottom:8px;font-size:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+            <div style="color:var(--dim)">加载中...</div>
+          </div>
+          <div class="qa">
+            <button onclick="loadPresets()">🔄 刷新列表</button>
+            <button onclick="showCreatePreset()">➕ 新建预设</button>
+          </div>
+          <div id="create-preset-form" style="display:none;margin-top:8px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+              <input id="preset-name" placeholder="预设名称" style="flex:1">
+            </div>
+            <div style="position:relative;margin-bottom:8px">
+              <input id="preset-item-search" placeholder="搜索物品名称/ID..." oninput="clearTimeout(_searchTimer);_searchTimer=setTimeout(()=>searchPresetItems(this.value),200)" onblur="setTimeout(()=>{qs('#preset-search-results').style.display='none'},200)" style="width:100%">
+              <div id="preset-search-results"></div>
+            </div>
+            <div id="preset-editor" style="margin-bottom:8px;max-height:60vh;min-height:120px;overflow-y:auto"></div>
+            <div style="display:flex;gap:6px">
+              <button class="g" id="preset-save-btn" onclick="createPreset()" style="flex:1">保存预设</button>
+              <button onclick="hideCreatePreset()" style="flex:1">取消</button>
+            </div>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">世界设置</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button onclick="apiHardmode().then(r=>t(r.response?r.response.join(' '):'完成'))">🔥 困难模式开关</button>
+            <button onclick="cycleWorldMode()">🌍 切换难度(Normal/Expert/Master)</button>
+            <button onclick="apiSetspawn().then(r=>t(r.response?r.response.join(' '):'完成'))">🏳 设出生点</button>
+            <button data-sw="protectspawn" onclick="toggleSwitch('protectspawn')">🏳 保护出生点</button>
+            <button data-sw="antibuild" onclick="toggleSwitch('antibuild')">🚧 建造限制</button>
+            <button onclick="apiSpawnrate(1).then(r=>t('刷怪率 1×'))">📈 刷怪率 1×</button>
+            <button onclick="apiSpawnrate(3).then(r=>t('刷怪率 3×'))">📈 刷怪率 3×</button>
+            <button onclick="apiSpawnrate(10).then(r=>t('刷怪率 10×'))">📈 刷怪率 10×</button>
+            <button onclick="apiMaxspawns()">🔽 显示刷怪上限</button>
+            <button onclick="toggleAutoSave()">💾 自动保存开关</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">世界管理</div>
+        <div class="collapsible-qa">
+          <div id="world-list" style="margin-bottom:8px;font-size:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+            <div style="color:var(--dim)">加载中...</div>
+          </div>
+          <div class="qa">
+            <button onclick="loadWorldList()">🔄 刷新列表</button>
+            <button onclick="showCreateWorld()">➕ 创建新世界</button>
+          </div>
+          <div id="create-world-form" style="display:none;margin-top:8px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius)">
+            <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+              <input id="new-world-name" placeholder="世界名称" style="flex:1;min-width:100px">
+              <select id="new-world-size" style="width:80px">
+                <option value="1">小</option>
+                <option value="2" selected>中</option>
+                <option value="3">大</option>
+              </select>
+              <select id="new-world-diff" style="width:80px">
+                <option value="0">普通</option>
+                <option value="1">专家</option>
+                <option value="2">大师</option>
+                <option value="3">旅途</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="g" onclick="createWorld()" style="flex:1">确认创建</button>
+              <button onclick="hideCreateWorld()" style="flex:1">取消</button>
+            </div>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">世界事件</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button data-evt="bloodmoon" onclick="evtClick('bloodmoon')">🔴 血月</button>
+            <button data-evt="eclipse" onclick="evtClick('eclipse')">🌑 日食</button>
+            <button data-evt="fullmoon" onclick="evtClick('fullmoon')">🌕 满月</button>
+            <button data-evt="sandstorm" onclick="evtClick('sandstorm')">🌪 沙尘暴</button>
+            <button data-evt="rain" onclick="evtClick('rain')">🌧 史莱姆雨</button>
+            <button data-evt="lanterns" onclick="evtClick('lanterns')">🏮 灯笼夜</button>
+            <button data-evt="meteorshower" onclick="evtClick('meteorshower')">☄ 流星雨</button>
+            <button onclick="apiEvent('meteor').then(r=>t(r.response?r.response.join(' '):'陨石已生成'))">☄ 陨星(一次性)</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">入侵事件</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button onclick="apiEvent('invasion','goblins',1).then(r=>t(r.response?r.response.join(' '):'哥布林入侵已开始'))">👺 哥布林</button>
+            <button onclick="apiEvent('invasion','pirates',1).then(r=>t(r.response?r.response.join(' '):'海盗入侵已开始'))">🏴‍☠ 海盗</button>
+            <button onclick="apiEvent('invasion','snowmen',1).then(r=>t(r.response?r.response.join(' '):'雪人入侵已开始'))">⛄ 雪人</button>
+            <button onclick="apiEvent('invasion','pumpkinmoon',1).then(r=>t(r.response?r.response.join(' '):'南瓜月已开始'))">🎃 南瓜月</button>
+            <button onclick="apiEvent('invasion','frostmoon',1).then(r=>t(r.response?r.response.join(' '):'霜月已开始'))">❄ 霜月</button>
+            <button onclick="apiEvent('invasion','martians',1).then(r=>t(r.response?r.response.join(' '):'火星人入侵已开始'))">👽 火星人</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">Boss / 怪物</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <input id="spawn-boss" placeholder="Boss ID..." style="width:80px">
+            <button onclick="rc('/spawnboss '+qs('#spawn-boss').value)">👹 生成Boss</button>
+            <input id="spawn-mob" placeholder="怪物ID 数量..." style="width:120px">
+            <button onclick="rc('/spawnmob '+qs('#spawn-mob').value)">👾 生成怪物</button>
+            <button onclick="rc('/renamenpc')">🏷 重命名NPC</button>
+            <button onclick="rc('/bossdamage')">📊 显示Boss伤害</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">传送 / 位置</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button onclick="rc('/home')">🏠 回家</button>
+            <button onclick="rc('/tpallow')">✅ 允许传送</button>
+            <input id="warp-name" placeholder="传送点..." style="width:100px">
+            <button onclick="rc('/warp \"'+qs('#warp-name').value+'\"')">🌀 传送</button>
+            <input id="tppos-x" placeholder="X" style="width:50px">
+            <input id="tppos-y" placeholder="Y" style="width:50px">
+            <button onclick="rc('/tppos '+qs('#tppos-x').value+' '+qs('#tppos-y').value)">📍 传送到坐标</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">玩家娱乐</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button onclick="rc('/slap \"'+selPlayers[0]+'\"')">🤚 扇耳光</button>
+            <button onclick="rc('/annoy \"'+selPlayers[0]+'\" 10')">😤 骚扰</button>
+            <button onclick="t('/rocket 需开启SSC才能使用','e')">🚀 火箭</button>
+            <button onclick="rc('/firework \"'+selPlayers[0]+'\"')">🎆 烟花</button>
+            <button onclick="rc('/rest')">🛌 休息</button>
+            <button onclick="rc('/party')">🎉 队伍</button>
+            <button onclick="rc('/me')">💬 表情</button>
+            <button onclick="rc('/respawn')">🔄 复活</button>
+            <input id="buff-name" placeholder="Buff ID..." style="width:80px">
+            <button onclick="rc('/buff '+qs('#buff-name').value)">✨ 给自己Buff</button>
+            <input id="gbuff-name" placeholder="Buff ID 玩家..." style="width:140px">
+            <button onclick="rc('/gbuff '+qs('#gbuff-name').value)">✨ 给玩家Buff</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">其他功能</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <button onclick="toggleSwitch('godmode')">🛡 神模式</button>
+            <button onclick="rc('/grow')">🌿 催长植物</button>
+            <button onclick="rc('/evil')">☠ 蔓延腐化/血腥</button>
+            <button onclick="rc('/forcehalloween')">🎃 强制万圣节</button>
+            <button onclick="rc('/forcexmas')">🎄 强制圣诞节</button>
+            <button onclick="rc('/setdungeon')">🏚 设地牢位置</button>
+            <button onclick="rc('/settle')">🌋 沉降液体</button>
+            <button onclick="rc('/clearangler')">🎣 重置渔夫任务</button>
+            <button onclick="rc('/whitelist')">📜 白名单开关</button>
+            <button onclick="rc('/checkupdates')">🔄 检查更新</button>
+          </div>
+        </div>
+        <div class="sec sec-collapsible" onclick="toggleSection(this)">物品 / 封禁</div>
+        <div class="collapsible-qa">
+          <div class="qa">
+            <input id="item-self" placeholder="物品ID 数量..." style="width:120px">
+            <button onclick="rc('/item '+qs('#item-self').value)">🎁 给自己物品</button>
+            <input id="itemban-name" placeholder="物品ID..." style="width:80px">
+            <button onclick="rc('/itemban '+qs('#itemban-name').value)">🚫 封禁物品</button>
+            <button onclick="rc('/projban')">🚫 弹幕封禁</button>
+            <button onclick="rc('/tileban')">🚫 方块封禁</button>
+            <button onclick="rc('/displaylogs')">📋 显示日志</button>
+            <button onclick="rc('/serverpassword')">🔑 服务器密码</button>
+          </div>
+        </div>
+        <div class="sec">
+          <span>在线玩家 <small id="pc"></small></span>
+          <span style="margin-left:auto" class="fb">
+            <button class="on" data-f="all" onclick="setFilter('all',this)">全部</button>
+            <button data-f="admin" onclick="setFilter('admin',this)">Admin</button>
+            <button data-f="player" onclick="setFilter('player',this)">Player</button>
+            <span style="width:1px;height:14px;background:var(--border);margin:0 4px"></span>
+            <button onclick="selAll()">☑ 全选</button>
+            <button onclick="selNone()">☐ 清空</button>
+          </span>
+        </div>
+        <div class="pl" id="pl"></div>
+        <div class="sb" id="selbar"></div>
+        <div id="np">暂无玩家在线</div>
+      </div>
+      <!-- ACTIONS -->
+      <div class="t" id="t-actions">
+        <div class="sec">服务器信息</div>
+        <table class="tb" style="width:100%;border-collapse:collapse;font-size:13px" id="sit"></table>
+        <div class="sec" style="margin-top:14px">
+          <span>MOTD / 规则</span>
+          <button style="margin-left:auto;height:22px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim)" onclick="loadMotdRules()">🔄 刷新</button>
+        </div>
+        <div id="mr" style="font-size:12px;line-height:1.6;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:10px;display:none"></div>
+        <div class="sec" style="margin-top:14px">
+          <span>当前状态</span>
+          <button style="margin-left:auto;height:22px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim)" onclick="loadWorldState()">🔄 刷新</button>
+        </div>
+        <div id="ws" style="font-size:12px;line-height:1.8;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:10px">
+          点击刷新获取状态
+        </div>
+      </div>
+      <!-- USERS & GROUPS -->
+      <div class="t" id="t-users">
+        <div class="sec">用户账号</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
+          <input id="nu-name" placeholder="用户名" style="flex:1;min-width:100px">
+          <input id="nu-pass" type="password" placeholder="密码" style="flex:1;min-width:100px">
+          <select id="nu-group" style="flex:1;min-width:80px"><option value="superadmin">superadmin</option><option value="default">default</option><option value="guest">guest</option></select>
+          <button class="nb g" onclick="addUser()" style="width:auto;height:30px;padding:0 16px;white-space:nowrap">添加</button>
+        </div>
+        <div id="ul"></div>
+        <div class="sec" style="margin-top:14px">用户组</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+          <input id="ng-name" placeholder="组名" style="flex:1;min-width:80px">
+          <select id="ng-parent" style="flex:1;min-width:80px"><option value="">无父组</option></select>
+          <input id="ng-perms" placeholder="权限(逗号分隔)" style="flex:2;min-width:120px">
+          <button class="nb g" onclick="addGroup()" style="width:auto;height:30px;padding:0 16px;white-space:nowrap">添加组</button>
+        </div>
+        <div id="gl"></div>
+      </div>
+      <!-- LOG -->
+      <div class="t" id="t-log">
+        <div class="sec">
+          <span>服务器日志 <small>最近操作记录</small></span>
+          <button style="margin-left:auto;height:22px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--surface);color:var(--dim)" onclick="loadLogs()">🔄 刷新</button>
+        </div>
+        <div id="log-box">加载中...</div>
+        <div class="sec" style="margin-top:14px">
+          <span>系统验证</span>
+          <button style="margin-left:auto;height:22px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:10px;background:var(--green);color:#000" onclick="runTests()">🔍 运行测试</button>
+        </div>
+        <div id="test-results" style="font-size:12px;line-height:1.8;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;display:none"></div>
+      </div>
+    </div>
+  </div>
+  <div id="bt">
+    <div id="bt-wrap" style="flex:1;position:relative">
+      <input id="ci" placeholder="指令..." style="width:100%" onkeydown="ciKey(event)" oninput="ciLive()" autocomplete="off">
+      <div id="ac"></div>
+    </div>
+    <button class="b g" onclick="rc()">发送</button>
+    <span class="sp"></span>
+    <button class="b" onclick="rc('/save')" title="保存">💾</button>
+    <button class="b" onclick="rc('/butcher')" title="屠NPC">🗡</button>
+    <button class="b" onclick="healAll()" title="全体治疗">❤️</button>
+    <button class="b" onclick="rc('/time day')" title="白天">☀</button>
+    <button class="b" onclick="rc('/time night')" title="夜晚">🌙</button>
+  </div>
+</div>
+<div id="confirm-bar" class="sb"><span class="c" id="confirm-msg"></span><button class="re" id="confirm-yes" style="font-size:11px;padding:0 10px">确认</button><button class="c" id="confirm-no" style="font-size:11px;padding:0 10px">取消</button></div>
+
+<div id="lg">
+  <div id="lb">
+    <h1>TShock Panel</h1>
+    <p>TShock 管理员登录</p>
+    <input id="lu" placeholder="用户名">
+    <input id="lp" type="password" placeholder="密码" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">登录</button>
+    <div class="e" id="le"></div>
+  </div>
+</div>
+
+<!-- GIVE ITEM MODAL -->
+<div class="mo" id="give-modal">
+  <div class="mi" style="max-width:520px;min-width:420px">
+    <h3>🎁 发放物品</h3>
+    <div class="itg">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="gm-search" placeholder="搜索物品名称..." oninput="renderItems()" style="flex:1">
+        <button style="font-size:11px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;background:var(--surface);color:var(--dim);white-space:nowrap" onclick="loadFullDB()">📦 加载全部</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="gm-manual-id" type="number" placeholder="手动输入物品ID..." style="flex:1;font-size:12px">
+        <button style="font-size:11px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;background:var(--cyan);color:#000;white-space:nowrap" onclick="giveManualItem()">直接发放</button>
+      </div>
+      <div class="ct" id="gm-cats"></div>
+      <div class="ig" id="gm-items"></div>
+      <div id="gm-info">
+        <span class="sel-none" id="gm-sel">未选择物品</span>
+        <span style="color:var(--dim)">数量</span>
+        <input id="gm-iq" type="number" value=1 min=1>
+        <span class="qb">
+          <button onclick="setQty(1)">×1</button>
+          <button onclick="setQty(10)">×10</button>
+          <button onclick="setQty(100)">×100</button>
+          <button onclick="setQty(999)">×999</button>
+        </span>
+        <span style="color:var(--dim);margin-left:auto">发放给:</span>
+        <span id="gm-targets"></span>
+      </div>
+    </div>
+    <div class="mb">
+      <button class="c" onclick="closeGive()">取消</button>
+      <button class="o" onclick="giveItem()">确认发放</button>
+    </div>
+  </div>
+</div>
+
+<!-- BROADCAST MODAL -->
+<div class="mo" id="bc-modal">
+  <div class="mi" style="max-width:400px">
+    <h3>📢 广播消息</h3>
+    <label>消息内容</label>
+    <input id="bc-msg" placeholder="输入广播消息..." onkeydown="if(event.key==='Enter')sendBc()">
+    <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px">
+      <button style="height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--surface);color:var(--dim)" onclick="qbc('服务器即将重启，请及时退出')">⏳ 即将重启</button>
+      <button style="height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--surface);color:var(--dim)" onclick="qbc('服务器已保存')">💾 已保存</button>
+      <button style="height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--surface);color:var(--dim)" onclick="qbc('请遵守服务器规则，文明游戏')">📋 遵守规则</button>
+      <button style="height:26px;padding:0 8px;border-radius:4px;border:none;cursor:pointer;font-size:11px;background:var(--surface);color:var(--dim)" onclick="qbc('维护即将开始，预计5分钟')">🛠 维护预告</button>
+    </div>
+    <div class="mb">
+      <button class="c" onclick="closeBc()">取消</button>
+      <button class="o" onclick="sendBc()">发送</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAYER INFO MODAL -->
+<div class="mo" id="pi-modal" onclick="if(event.target===this)closePi()">
+  <div class="mi" style="max-width:560px">
+    <h3 id="pi-name">玩家信息</h3>
+    <div style="font-size:12px;line-height:1.8">
+      <div><span style="color:var(--dim)">分组:</span> <span id="pi-group">-</span></div>
+      <div><span style="color:var(--dim)">IP:</span> <span id="pi-ip">-</span></div>
+      <div><span style="color:var(--dim)">坐标:</span> <span id="pi-pos">-</span></div>
+      <div id="pi-trail-wrap" style="display:none;margin-top:6px">
+        <div class="sec" style="font-size:11px;margin-bottom:4px">轨迹 <span id="pi-trail-count" style="color:var(--dim);font-weight:400"></span> <span style="color:var(--dim);font-weight:400;font-size:10px">滚轮缩放·拖拽平移</span></div>
+        <div style="display:flex;align-items:center;gap:3px;margin-bottom:4px;overflow-x:auto"><span style="color:var(--dim);font-size:10px;flex-shrink:0">显示</span><select id="pi-trail-limit" onchange="loadPlayerTrail(piName,parseInt(this.value))" style="height:20px;font-size:10px;padding:0 14px 0 4px;border-radius:3px;flex-shrink:0;width:auto;max-width:60px"><option value="50">50</option><option value="100">100</option><option value="200" selected>200</option><option value="500">500</option><option value="0">全部</option></select><button onclick="resetTrailView()" style="font-size:10px;height:20px;padding:0 6px;border-radius:3px;border:1px solid var(--border);background:var(--surface);color:var(--dim);cursor:pointer;white-space:nowrap;flex-shrink:0">复位</button><button onclick="clearTrailPlayer()" style="font-size:10px;height:20px;padding:0 6px;border-radius:3px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;white-space:nowrap;flex-shrink:0">清此玩家</button><button onclick="clearTrails('offline')" style="font-size:10px;height:20px;padding:0 6px;border-radius:3px;border:1px solid var(--border);background:var(--surface);color:var(--orange);cursor:pointer;white-space:nowrap;flex-shrink:0">清离线</button><button onclick="clearTrails('all')" style="font-size:10px;height:20px;padding:0 6px;border-radius:3px;border:1px solid var(--border);background:var(--surface);color:var(--red);cursor:pointer;white-space:nowrap;flex-shrink:0">清全部</button></div>
+        <canvas id="pi-trail-canvas" width="380" height="200" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);cursor:grab"></canvas>
+      </div>
+      <div><span style="color:var(--dim)">登录时间:</span> <span id="pi-login">-</span></div>
+      <div><span style="color:var(--dim)">状态:</span> <span id="pi-state" style="color:var(--green)">在线</span> <span id="pi-muted" style="display:none;color:var(--orange)">(禁言中)</span></div>
+    </div>
+    <div id="pi-inv" style="margin-top:8px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">背包</div>
+      <div id="pi-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-armor" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">装备</div>
+      <div id="pi-armor-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-dyes" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">染料</div>
+      <div id="pi-dye-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-piggy" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">🐷 存钱罐</div>
+      <div class="pi-storage-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-safe" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">🔒 保险箱</div>
+      <div class="pi-storage-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-forge" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">🔨 锻造台</div>
+      <div class="pi-storage-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div id="pi-buffs" style="margin-top:6px;display:none">
+      <div class="sec" style="font-size:11px;margin-bottom:4px">Buff</div>
+      <div id="pi-buff-items" style="font-size:11px;display:flex;flex-wrap:wrap;gap:3px"></div>
+    </div>
+    <div class="mb" style="margin-top:10px">
+      <button class="gn" onclick="copyPlayerData()">📋 复制全部</button>
+      <button class="c" onclick="closePi()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="eu-modal" onclick="if(event.target===this)closeEu()">
+  <div class="mi" style="max-width:360px">
+    <h3 id="eu-title">编辑用户</h3>
+    <div style="margin:10px 0">
+      <div style="margin-bottom:8px"><input id="eu-pass" type="password" placeholder="新密码(留空不改)" style="width:100%"></div>
+      <div style="margin-bottom:8px"><select id="eu-group" style="width:100%"><option value="">不改分组</option></select></div>
+      <div style="font-size:11px;color:var(--dim)">当前分组: <span id="eu-cg"></span></div>
+    </div>
+    <div class="mb">
+      <button class="c" onclick="closeEu()">取消</button>
+      <button class="g" onclick="saveEu()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="pd-modal" onclick="if(event.target===this)closePd()">
+  <div class="mi" style="max-width:500px">
+    <h3>权限: <span id="pd-name"></span></h3>
+    <div id="pd-list" style="font-size:11px;line-height:1.6;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin:10px 0;max-height:300px;overflow-y:auto;word-break:break-all"></div>
+    <div class="mb">
+      <button class="c" onclick="closePd()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="tt"></div>
+<div id="world-progress" style="display:none;position:fixed;top:50px;left:50%;transform:translateX(-50%);z-index:300;padding:12px 24px;background:var(--card);border:2px solid var(--gold);border-radius:var(--radius);color:var(--gold);font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.5);text-align:center">
+  <div class="spinner" style="display:inline-block;vertical-align:middle;margin-right:8px"></div>
+  <span id="world-progress-text">正在处理...</span>
+</div>
+
+<script>
+let token='', players=[], pNames=[], selItem=null, selPlayers=[];
+
+// ---- COMPREHENSIVE ITEM DB with categories ----
+// c=category, r=rarity 0-4
+let CATS = {
+  coins:'💰 货币', ores:'⛏ 矿石', bars:'🔩 锭', souls:'💠 魂',
+  boss:'👹 Boss', life:'❤️ 生命/魔力', wings:'🪶 翅膀',
+  acc:'💍 饰品', weapon:'⚔️ 武器', tool:'🛠 工具',
+  potion:'🧪 药水', build:'🏗 建筑', ammo:'🎯 弹药', other:'📦 其他'
+};
+let CAT_ORDER = ['coins','ores','bars','souls','boss','life','wings','acc','weapon','tool','potion','build','ammo','other'];
+let ITEMS = [
+  {id:71,n:"铜币",c:"coins",r:0},{id:72,n:"银币",c:"coins",r:0},{id:73,n:"金币",c:"coins",r:0},{id:74,n:"铂金币",c:"coins",r:0},
+  {id:12,n:"铜矿",c:"ores",r:0},{id:699,n:"锡矿",c:"ores",r:0},{id:11,n:"铁矿",c:"ores",r:0},{id:700,n:"铅矿",c:"ores",r:0},
+  {id:14,n:"银矿",c:"ores",r:0},{id:701,n:"钨矿",c:"ores",r:0},{id:13,n:"金矿",c:"ores",r:0},{id:702,n:"铂金矿",c:"ores",r:0},
+  {id:364,n:"钴矿",c:"ores",r:1},{id:365,n:"秘银矿",c:"ores",r:1},{id:366,n:"精金矿",c:"ores",r:2},{id:1106,n:"钛金矿",c:"ores",r:2},{id:947,n:"叶绿矿",c:"ores",r:2},
+  {id:20,n:"铜锭",c:"bars",r:0},{id:703,n:"锡锭",c:"bars",r:0},{id:22,n:"铁锭",c:"bars",r:0},{id:704,n:"铅锭",c:"bars",r:0},
+  {id:21,n:"银锭",c:"bars",r:0},{id:705,n:"钨锭",c:"bars",r:0},{id:19,n:"金锭",c:"bars",r:0},{id:706,n:"铂金锭",c:"bars",r:0},
+  {id:381,n:"钴锭",c:"bars",r:1},{id:382,n:"秘银锭",c:"bars",r:1},{id:391,n:"精金锭",c:"bars",r:2},{id:1198,n:"钛金锭",c:"bars",r:2},
+  {id:1006,n:"叶绿锭",c:"bars",r:2},{id:1225,n:"神圣锭",c:"bars",r:2},{id:1257,n:"血腥锭",c:"bars",r:2},{id:3467,n:"夜明锭",c:"bars",r:4},
+  {id:520,n:"光明之魂",c:"souls",r:1},{id:521,n:"暗影之魂",c:"souls",r:1},{id:548,n:"力量之魂",c:"souls",r:2},{id:549,n:"视域之魂",c:"souls",r:2},{id:547,n:"恐惧之魂",c:"souls",r:2},{id:3575,n:"飞翔之魂",c:"souls",r:2},
+  {id:43,n:"可疑眼球",c:"boss",r:1},{id:70,n:"蠕虫食物",c:"boss",r:1},{id:1331,n:"血腥脊柱",c:"boss",r:1},{id:544,n:"机械眼球",c:"boss",r:2},{id:556,n:"机械蠕虫",c:"boss",r:2},{id:557,n:"机械骷髅",c:"boss",r:2},{id:2767,n:"日耀碑牌",c:"boss",r:3},{id:3601,n:"天界符",c:"boss",r:4},
+  {id:29,n:"生命水晶",c:"life",r:1},{id:109,n:"魔力水晶",c:"life",r:1},{id:1291,n:"生命果",c:"life",r:2},{id:3335,n:"恶魔之心",c:"life",r:2},
+  {id:493,n:"天使之翼",c:"wings",r:2},{id:492,n:"恶魔之翼",c:"wings",r:2},{id:822,n:"冰火之翼",c:"wings",r:2},{id:823,n:"幽灵之翼",c:"wings",r:2},{id:761,n:"光之翼",c:"wings",r:2},{id:1866,n:"暗之翼",c:"wings",r:2},{id:2609,n:"猪鲨之翼",c:"wings",r:3},{id:2280,n:"甲虫之翼",c:"wings",r:3},{id:948,n:"蒸汽朋克之翼",c:"wings",r:3},{id:3543,n:"破晓之翼",c:"wings",r:3},{id:3471,n:"月皇之翼",c:"wings",r:4},{id:3470,n:"星云之翼",c:"wings",r:4},{id:3469,n:"星旋之翼",c:"wings",r:4},{id:3468,n:"日炎之翼",c:"wings",r:4},
+  {id:906,n:"熔岩护身符",c:"acc",r:1},{id:397,n:"黑曜石护身符",c:"acc",r:1},{id:193,n:"黑曜石骷髅",c:"acc",r:1},{id:3384,n:"传送枪",c:"acc",r:3},{id:3110,n:"天界壳",c:"acc",r:4},{id:1865,n:"天界石",c:"acc",r:3},{id:533,n:"星星面纱",c:"acc",r:2},{id:1612,n:"十字章护身符",c:"acc",r:2},{id:2219,n:"天界磁铁",c:"acc",r:3},{id:2220,n:"天界徽章",c:"acc",r:3},{id:3097,"n":"蠕虫围巾","c":"acc","r":1},
+  {id:273,n:"永夜刃",c:"weapon",r:2},{id:675,n:"原版永夜刃",c:"weapon",r:3},{id:757,n:"泰拉之刃",c:"weapon",r:4},{id:197,n:"星星炮",c:"weapon",r:3},{id:3063,n:"喵刀",c:"weapon",r:4},{id:3065,n:"天顶剑",c:"weapon",r:4},{id:3062,n:"月皇法杖",c:"weapon",r:4},{id:1260,n:"彩虹枪",c:"weapon",r:3},{id:3107,n:"S.D.M.G.",c:"weapon",r:4},{id:3349,n:"幻影弓",c:"weapon",r:4},{id:2273,n:"武士刀",c:"weapon",r:0},
+  {id:1231,n:"叶绿钻头",c:"tool",r:2},{id:1232,n:"叶绿链锯",c:"tool",r:2},{id:1294,n:"锯刃镐",c:"tool",r:3},{id:1,n:"铁镐",c:"tool",r:0},{id:2,n:"铜镐",c:"tool",r:0},
+  {id:28,n:"治疗药水",c:"potion",r:0},{id:188,n:"强效治疗药水",c:"potion",r:0},{id:499,n:"超级治疗药水",c:"potion",r:1},{id:110,n:"魔力药水",c:"potion",r:0},{id:189,n:"强效魔力药水",c:"potion",r:0},{id:2209,n:"超级魔力药水",c:"potion",r:1},{id:292,n:"铁皮药水",c:"potion",r:0},{id:289,n:"再生药水",c:"potion",r:0},{id:290,n:"敏捷药水",c:"potion",r:0},{id:293,n:"魔力再生药水",c:"potion",r:0},{id:294,n:"魔能药水",c:"potion",r:0},{id:2346,n:"耐力药水",c:"potion",r:0},{id:303,n:"箭术药水",c:"potion",r:0},{id:2325,n:"建筑工药水",c:"potion",r:0},{id:300,n:"刷怪率药水",c:"potion",r:0},
+  {id:97,n:"火枪弹",c:"ammo",r:0},{id:40,n:"木箭",c:"ammo",r:0},{id:41,n:"火焰箭",c:"ammo",r:0},{id:47,n:"邪恶箭",c:"ammo",r:0},{id:51,n:"小丑之箭",c:"ammo",r:0},{id:234,n:"陨星弹",c:"ammo",r:0},{id:265,n:"地狱火箭",c:"ammo",r:1},{id:278,n:"银弹",c:"ammo",r:0},{id:515,n:"水晶弹",c:"ammo",r:1},{id:516,n:"圣箭",c:"ammo",r:1},{id:1179,n:"叶绿弹",c:"ammo",r:2},{id:1235,n:"叶绿箭",c:"ammo",r:2},{id:1302,n:"高速弹",c:"ammo",r:1},{id:1334,n:"脓血箭",c:"ammo",r:2},{id:1335,n:"脓血弹",c:"ammo",r:2},{id:1341,n:"毒液箭",c:"ammo",r:2},{id:1342,n:"毒液弹",c:"ammo",r:2},{id:3567,n:"夜明弹",c:"ammo",r:4},{id:3568,n:"夜明箭",c:"ammo",r:4},
+  {id:71,n:"铜币",c:"coin",r:0},{id:72,n:"银币",c:"coin",r:0},{id:73,n:"金币",c:"coin",r:0},{id:74,n:"铂金币",c:"coin",r:0},
+  {id:593,n:"雪块",c:"build",r:0},{id:594,n:"雪砖",c:"build",r:0},{id:129,n:"灰砖",c:"build",r:0},{id:9,n:"木",c:"build",r:0},{id:25,n:"木门",c:"build",r:0},
+  {id:75,n:"坠落之星",c:"other",r:0},{id:23,n:"凝胶",c:"other",r:0},{id:27,n:"橡实",c:"other",r:0},
+];
+let BUFFS=[];let PREFIXES=[];let PREFIX_MAP={};window._editingPresetName=null;
+async function loadFullDB(){
+  try{
+    const r=await fetch('/itemdb.json');const db=await r.json();
+    if(db.items&&db.items.length>ITEMS.length){
+      ITEMS=db.items;CATS=db.categories||CATS;CAT_ORDER=db.catOrder||CAT_ORDER;
+      if(typeof renderCats==='function')renderCats();
+      if(typeof renderItems==='function')renderItems();
+    }
+  }catch(e){}
+}
+async function loadBuffDB(){
+  try{
+    const r=await fetch('/buffdb.json');const db=await r.json();
+    if(db.buffs)BUFFS=db.buffs;
+  }catch(e){}
+}
+async function loadPrefixDB(){
+  try{
+    const r=await fetch('/prefixdb.json');const db=await r.json();
+    if(db.prefixes)PREFIXES=db.prefixes;
+    const catMap={weapon:['近战','远程','魔法','通用'],tool:['近战','通用'],acc:['饰品'],wings:['饰品']};
+    PREFIX_MAP={};
+    for(const[itemCat,prefixTs]of Object.entries(catMap)){
+      PREFIX_MAP[itemCat]=PREFIXES.filter(p=>!p.t||prefixTs.includes(p.t)||p.id===0).map(p=>p.id);
+    }
+  }catch(e){}
+}
+
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function qs(s){return document.querySelector(s)}
+
+// Auth
+async function login(){
+  const u=qs('#lu').value.trim(),p=qs('#lp').value;
+  if(!u||!p)return se('请输入用户名和密码');
+  try{
+    const r=await fetch('/api/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    if(!r.ok){const e=await r.text();return se(e||'登录失败')}
+    const d=await r.json();token=d.token;
+    qs('#lg').classList.add('h');qs('#un').textContent=u;
+    connectWebSocket();
+    init();
+  }catch(e){se('连接失败: '+e.message)}
+}
+function se(m){const e=qs('#le');e.textContent=m;e.style.display='block'}
+function logout(){
+  token='';qs('#lg').classList.remove('h');qs('#pl').innerHTML='';clearInterval(window._ti);
+  fetch('/api/logout',{method:'POST',credentials:'include'});
+  clearInterval(window._pi);
+  if(window._ws){window._ws.close();window._ws=null}
+}
+
+// WebSocket Manager
+let ws=null;
+let wsCallbacks={};
+let wsReconnectTimer=null;
+
+function connectWebSocket(){
+  if(ws&&ws.readyState===WebSocket.OPEN)return;
+  const protocol=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(protocol+'//'+location.host+'/api/ws');
+  window._ws=ws;
+
+  ws.onopen=function(){
+    console.log('WebSocket connected');
+    if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null}
+    // Request initial status
+    ws.send(JSON.stringify({type:'status'}));
+    ws.send(JSON.stringify({type:'players'}));
+    // Stop HTTP polling — WS handles all updates
+    if(window._pi){clearInterval(window._pi);window._pi=null}
+    if(window._ti){clearInterval(window._ti);window._ti=null}
+    if(window._jt){clearInterval(window._jt);window._jt=null}
+  };
+
+  ws.onmessage=function(event){
+    try{
+      const msg=JSON.parse(event.data);
+      handleWSMessage(msg);
+    }catch(e){console.error('WS parse error:',e)}
+  };
+
+  ws.onclose=function(event){
+    console.log('WebSocket closed:',event.code,event.reason);
+    ws=null;
+    // Fall back to HTTP polling when WS disconnects
+    if(!window._pi)window._pi=setInterval(refreshPlayerList,5000);
+    if(!window._ti)window._ti=setInterval(loadStatus,10000);
+    if(!window._jt)window._jt=setInterval(()=>{loadJoinTimes()},30000);
+    // Auto-reconnect after 3 seconds
+    if(token){
+      wsReconnectTimer=setTimeout(connectWebSocket,3000);
+    }
+  };
+
+  ws.onerror=function(error){
+    console.error('WebSocket error:',error);
+  };
+}
+
+function handleWSMessage(msg){
+  switch(msg.type){
+    case 'log':
+      appendLog(msg.payload);
+      break;
+    case 'status':
+    case 'status_update':
+      updateStatusFromWS(msg.payload);
+      break;
+    case 'players':
+      updatePlayersFromWS(msg.payload);
+      break;
+    case 'cmd_result':
+      handleCmdResult(msg.payload);
+      break;
+    case 'player_join':
+      onPlayerJoin(msg.payload);
+      break;
+    case 'player_leave':
+      onPlayerLeave(msg.payload);
+      break;
+    case 'player_info':
+      onWSPlayerInfo(msg.payload);
+      break;
+    case 'player_tp':
+      onWSPlayerTp(msg.payload);
+      break;
+    case 'error':
+      t('错误: '+msg.payload,'e');
+      break;
+  }
+}
+
+function appendLog(line){
+  const el=qs('#log-box');
+  if(!el)return;
+  if(!line.trim())return;
+  let cls='';
+  if(line.includes('ERROR')||line.includes('error'))cls='e';
+  else if(line.includes('WARN')||line.includes('warn'))cls='i';
+  else if(line.includes('INFO')||line.includes('executed'))cls='o';
+  const div=document.createElement('div');
+  if(cls)div.className=cls;
+  div.textContent=line;
+  el.appendChild(div);
+  while(el.children.length>500)el.removeChild(el.firstChild);
+  if(el.scrollHeight-el.scrollTop-el.clientHeight<100){
+    el.scrollTop=el.scrollHeight;
+  }
+}
+
+function updateStatusFromWS(data){
+  if(!data)return;
+  const server=data.server||data;
+  const world=data.world||{};
+  // Update dashboard cards
+  if(server.playercount!==undefined)qs('#oc').textContent=server.playercount;
+  if(server.world)updateTopWorldName(server.world);
+  // Update world info
+  let bm='-',dt='-',tm='-',md='-',inv='-',sp='-',ab='-';
+  if(world.bloodmoon!==undefined){
+    bm=world.bloodmoon?'🔴 血月':'🌙 正常';
+    evtState.bloodmoon=!!world.bloodmoon;
+    const bmBtn=qs('[data-evt="bloodmoon"]');
+    if(bmBtn)bmBtn.classList.toggle('on',!!world.bloodmoon);
+  }
+  if(world.daytime!==undefined){
+    dt=world.daytime?'☀ 白天':'🌃 夜晚';
+  }
+  if(world.time!==undefined){
+    const h=Math.floor(world.time/3600)%24;const m=Math.floor(world.time%3600/60);
+    tm=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0');
+  }
+  if(world.invasionsize!==undefined){
+    inv=world.invasionsize>0?'👾 入侵('+world.invasionsize+')':'—';
+  }
+  if(world.mode!==undefined){
+    md=world.mode;
+  }
+  sp=swState.protectspawn?'🏳 保护':'—';
+  ab=swState.antibuild?'🚧 禁建':'—';
+  // Update dashboard HTML
+  const sg=qs('#sg');
+  if(sg){
+    sg.innerHTML=`
+      <div class="sc"><div class="v">${server.playercount||0}</div><div class="l">在线</div></div>
+      <div class="sc"><div class="v">${server.uptime||'-'}</div><div class="l">运行</div></div>
+      <div class="sc"><div class="v">${dt}</div><div class="l">${tm}</div></div>
+      <div class="sc"><div class="v">${bm}</div><div class="l">天象</div></div>
+      <div class="sc"><div class="v">${inv}</div><div class="l">入侵</div></div>
+      <div class="sc"><div class="v">${sp}</div><div class="l">出生点</div></div>
+      <div class="sc"><div class="v">${ab}</div><div class="l">建造</div></div>
+      <div class="sc"><div class="v">${md}</div><div class="l">难度</div></div>
+      <div class="sc"><div class="v">${window._currentWorldFile||server.world||'-'}</div><div class="l">世界</div></div>`;
+  }
+}
+
+function updatePlayersFromWS(data){
+  if(!data||!data.players)return;
+  // Update player list from WS data
+  const names=data.players.filter(p=>p.active).map(p=>({name:p.nickname||p.username}));
+  if(names.length>=0){
+    players=names;
+    qs('#pc').textContent='('+players.length+' 人)';
+    renderPlayers('#pl','#selbar');
+  }
+}
+
+// Call from status_update handler
+(function(){
+  const origUpdateStatus=updateStatusFromWS;
+  updateStatusFromWS=function(data){
+    origUpdateStatus(data);
+    if(data&&data.players)updatePlayersFromWS(data);
+    if(data&&data.joinTimes){_joinTimes=data.joinTimes;updateJoinTimeDisplay()}
+    else if(data&&!data.players){_joinTimes={};updateJoinTimeDisplay()}
+  };
+})();
+
+// RESTful API helpers
+async function apiPost(path, body={}){
+  try{
+    const r=await fetch(path,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return await r.json();
+  }catch(e){return {error:e.message}}
+}
+
+// World operations
+async function apiHardmode(){return await apiPost('/api/world/hardmode')}
+async function apiWorldMode(mode){return await apiPost('/api/world/mode',{mode})}
+async function apiSpawnrate(rate){return await apiPost('/api/world/spawnrate',{rate})}
+async function apiSetspawn(){return await apiPost('/api/world/setspawn')}
+async function apiProtectspawn(){return await apiPost('/api/world/protectspawn')}
+async function apiAntibuild(){return await apiPost('/api/world/antibuild')}
+
+// Event operations
+async function apiEvent(event,type,wave){
+  const body={event};
+  if(type)body.type=type;
+  if(wave)body.wave=wave;
+  return await apiPost('/api/event',body);
+}
+
+// World management operations
+function updateTopWorldName(internalName){
+  const file=window._currentWorldFile||'';
+  const el=qs('#wn');
+  if(!file){el.textContent=internalName||'-';return}
+  if(internalName&&internalName!==file){
+    el.innerHTML=esc(file)+'<br><small style="color:var(--dim)">内部名: '+esc(internalName)+'</small>';
+  }else{
+    el.textContent=file||'-';
+  }
+}
+
+async function loadWorldList(){
+  try{
+    const r=await ap('/api/worlds');
+    const d=await r.json();
+    const worlds=d.worlds||[];
+    const el=qs('#world-list');
+    
+    if(!worlds.length){
+      el.innerHTML='<div style="color:var(--dim)">暂无世界文件</div>';
+      return;
+    }
+    
+    let html='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<tr style="color:var(--dim)"><th style="text-align:left;padding:4px 8px">世界名称</th><th style="text-align:right;padding:4px 8px">大小</th><th style="text-align:center;padding:4px 8px">操作</th></tr>';
+    worlds.forEach(w=>{
+      const size=(w.size/1024/1024).toFixed(1)+'MB';
+      const active=w.active?' style="color:var(--green)"':'';
+      let btn='';
+      if(w.active){
+        btn='<span style="color:var(--green);font-size:11px">当前</span>';
+      }else{
+        btn=`<button onclick="switchWorld('${esc(w.name)}')" style="height:22px;padding:0 8px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer">切换</button>`;
+      }
+      const renameBtn=`<button onclick="renameWorld('${esc(w.name)}')" style="height:22px;padding:0 6px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--dim);cursor:pointer;margin-left:4px" title="重命名">✏️</button>`;
+      const delBtn=w.active?'':`<button onclick="deleteWorld('${esc(w.name)}')" style="height:22px;padding:0 6px;font-size:11px;border-radius:4px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer;margin-left:4px" title="删除">🗑</button>`;
+      const versionBtn=`<button onclick="showWorldBackups('${esc(w.name)}')" style="height:22px;padding:0 6px;font-size:11px;border-radius:4px;border:1px solid var(--cyan);background:none;color:var(--cyan);cursor:pointer;margin-left:4px" title="版本管理">📂</button>`;
+      const nameHtml=w.internalName?`${esc(w.name)}<br><small style="color:var(--dim)">内部名: ${esc(w.internalName)}</small>`:esc(w.name);
+      html+=`<tr${active}><td style="padding:4px 8px">${nameHtml}</td><td style="padding:4px 8px;text-align:right">${size}</td><td style="padding:4px 8px;text-align:center">${btn}${renameBtn}${delBtn}${versionBtn}</td></tr>`;
+    });
+    html+='</table>';
+    el.innerHTML=html;
+    const active=worlds.find(w=>w.active);
+    if(active)window._currentWorldFile=active.name;
+    updateTopWorldName(window._tshockInternalWorldName||'');
+
+    t('已加载 '+worlds.length+' 个世界','o');
+  }catch(e){t('加载世界列表失败','e')}
+}
+
+async function backupWorld(name){
+  showConfirm('备份世界 '+name+'？',async()=>{
+    showProgress('正在备份 '+name+'...');
+    try{
+      const r=await ap('/api/world/backup',{method:'POST',body:JSON.stringify({name,label:''})});
+      const d=await r.json();
+      hideProgress();
+      if(d.status==='200'){
+        t(d.message,'o');
+        loadWorldList();
+      }else{
+        t('备份失败: '+(d.error||'未知错误'),'e');
+      }
+    }catch(e){hideProgress();t('备份失败: '+e.message,'e')}
+  });
+}
+
+function showWorldBackups(name){
+  const existing=qs('#world-backups-popup');
+  if(existing)existing.remove();
+  const popup=document.createElement('div');
+  popup.id='world-backups-popup';
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-width:360px;max-width:500px;max-height:70vh;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+  popup.innerHTML=`<div style="font-size:14px;font-weight:600;margin-bottom:8px">${esc(name)} · 版本管理</div><div id="world-backups-list" style="color:var(--dim);font-size:12px">加载中...</div><div style="margin-top:12px;display:flex;gap:6px"><button onclick="backupWorld('${esc(name)}');document.querySelector('#world-backups-popup').remove()" style="flex:1;height:28px;border-radius:4px;border:1px solid var(--gold);background:var(--gold);color:#000;cursor:pointer;font-size:12px;font-weight:600">💾 立即备份</button><button onclick="this.closest('#world-backups-popup').remove()" style="flex:1;height:28px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:12px">关闭</button></div>`;
+  document.body.appendChild(popup);
+  loadWorldBackupList(name);
+}
+
+async function loadWorldBackupList(name){
+  const el=qs('#world-backups-list');
+  if(!el)return;
+  try{
+    const r=await ap('/api/world/backups?world='+encodeURIComponent(name));
+    const d=await r.json();
+    const backups=d.backups||[];
+    if(!backups.length){
+      el.innerHTML='<div style="color:var(--dim);padding:8px 0">暂无备份</div>';
+      return;
+    }
+    let html='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<tr style="color:var(--dim)"><th style="text-align:left;padding:4px 6px">时间</th><th style="text-align:left;padding:4px 6px">标签</th><th style="text-align:right;padding:4px 6px">大小</th><th style="text-align:center;padding:4px 6px">操作</th></tr>';
+    backups.forEach(b=>{
+      const size=(b.size/1024/1024).toFixed(1)+'MB';
+      const label=b.label?esc(b.label):'<span style="color:var(--dim)">-</span>';
+      html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:4px 6px;white-space:nowrap">${esc(b.timestamp)}</td><td style="padding:4px 6px;max-width:100px;overflow:hidden;text-overflow:ellipsis" title="${esc(b.label||'')}">${label}</td><td style="padding:4px 6px;text-align:right">${size}</td><td style="padding:4px 6px;text-align:center;white-space:nowrap"><button onclick="restoreWorldBackup('${esc(b.id)}','${esc(name)}')" style="height:22px;padding:0 6px;font-size:10px;border-radius:4px;border:1px solid var(--cyan);background:none;color:var(--cyan);cursor:pointer" title="恢复此版本">恢复</button> <button onclick="editBackupLabel('${esc(b.id)}','${esc(b.label||'')}')" style="height:22px;padding:0 4px;font-size:10px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--dim);cursor:pointer" title="编辑标签">✏️</button> <button onclick="deleteWorldBackup('${esc(b.id)}','${esc(name)}')" style="height:22px;padding:0 4px;font-size:10px;border-radius:4px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer" title="删除备份">🗑</button></td></tr>`;
+    });
+    html+='</table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<div style="color:var(--red)">加载失败</div>'}
+}
+
+async function restoreWorldBackup(id,name){
+  showConfirm('恢复世界 '+name+' 到备份版本？当前世界将被覆盖，服务器将重启。',async()=>{
+    showProgress('正在恢复世界...');
+    try{
+      const r=await ap('/api/world/restore',{method:'POST',body:JSON.stringify({id})});
+      const d=await r.json();
+      hideProgress();
+      if(d.status==='200'){
+        t(d.message,'o');
+        qs('#world-backups-popup').remove();
+        setTimeout(()=>{loadWorldList();loadStatus()},5000);
+      }else{
+        t('恢复失败: '+(d.error||'未知错误'),'e');
+      }
+    }catch(e){hideProgress();t('恢复失败: '+e.message,'e')}
+  });
+}
+
+async function deleteWorldBackup(id,name){
+  showConfirm('删除此备份？',async()=>{
+    try{
+      const r=await ap('/api/world/backup',{method:'DELETE',body:JSON.stringify({id})});
+      const d=await r.json();
+      if(d.status==='200'){
+        t(d.message,'o');
+        loadWorldBackupList(name);
+      }else{
+        t('删除失败: '+(d.error||'未知错误'),'e');
+      }
+    }catch(e){t('删除失败: '+e.message,'e')}
+  });
+}
+
+function editBackupLabel(id,currentLabel){
+  const existing=qs('#edit-label-popup');
+  if(existing)existing.remove();
+  const popup=document.createElement('div');
+  popup.id='edit-label-popup';
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:300;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;min-width:240px;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+  popup.innerHTML=`<div style="font-size:12px;font-weight:600;margin-bottom:8px">编辑备份标签</div><input id="edit-label-input" value="${esc(currentLabel)}" placeholder="输入标签..." style="width:100%;height:28px;font-size:12px;margin-bottom:8px"><div style="display:flex;gap:6px"><button onclick="saveBackupLabel('${esc(id)}')" style="flex:1;height:26px;border-radius:4px;border:1px solid var(--green);background:var(--green);color:#000;cursor:pointer;font-size:11px;font-weight:600">保存</button><button onclick="this.closest('#edit-label-popup').remove()" style="flex:1;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:11px">取消</button></div>`;
+  document.body.appendChild(popup);
+  qs('#edit-label-input').focus();
+}
+
+async function saveBackupLabel(id){
+  const label=qs('#edit-label-input').value.trim();
+  try{
+    const r=await ap('/api/world/backup/label',{method:'POST',body:JSON.stringify({id,label})});
+    const d=await r.json();
+    if(d.status==='200'){
+      t(d.message,'o');
+      qs('#edit-label-popup').remove();
+      const popup=qs('#world-backups-popup');
+      if(popup){
+        const title=popup.querySelector('div');
+        if(title){
+          const name=title.textContent.split(' · ')[0];
+          loadWorldBackupList(name);
+        }
+      }
+    }else{
+      t('更新失败: '+(d.error||'未知错误'),'e');
+    }
+  }catch(e){t('更新失败: '+e.message,'e')}
+}
+
+async function deleteWorld(name){
+  showConfirm('删除世界 '+name+'？此操作不可恢复。',async()=>{
+    showProgress('正在删除 '+name+'...');
+    try{
+      const r=await ap('/api/world/delete',{method:'POST',body:JSON.stringify({name})});
+      const d=await r.json();
+      hideProgress();
+      if(d.status==='200'){
+        t(d.message,'o');
+        loadWorldList();
+      }else{
+        t('删除失败: '+(d.error||'未知错误'),'e');
+      }
+    }catch(e){hideProgress();t('删除失败: '+e.message,'e')}
+  });
+}
+
+function renameWorld(name){
+  // Find the row and replace name cell with input
+  const rows=qs('#world-list').querySelectorAll('tr');
+  rows.forEach(row=>{
+    const cells=row.querySelectorAll('td');
+    if(!cells.length)return;
+    const nameCell=cells[0];
+    if(nameCell.textContent.trim()===name){
+      const origHtml=nameCell.innerHTML;
+      nameCell.innerHTML=`<input id="rename-input" value="${esc(name)}" style="width:100%;padding:2px 6px;font-size:12px;background:var(--surface);border:1px solid var(--cyan);border-radius:4px;color:var(--text)">`;
+      const input=qs('#rename-input');
+      input.focus();
+      input.select();
+      const actionCell=cells[2];
+      const origActions=actionCell.innerHTML;
+      actionCell.innerHTML=`<button onclick="doRename('${esc(name)}')" style="height:22px;padding:0 8px;font-size:11px;border-radius:4px;border:1px solid var(--green);background:var(--green);color:#000;cursor:pointer">确认</button> <button onclick="loadWorldList()" style="height:22px;padding:0 8px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer">取消</button>`;
+      input.onkeydown=function(e){if(e.key==='Enter')doRename(name);if(e.key==='Escape')loadWorldList()};
+    }
+  });
+}
+
+async function doRename(oldName){
+  const input=qs('#rename-input');
+  if(!input)return;
+  const newName=input.value.trim();
+  if(!newName||newName===oldName){loadWorldList();return}
+  showProgress('正在重命名 '+oldName+' → '+newName+'...');
+  try{
+    const r=await ap('/api/world/rename',{method:'POST',body:JSON.stringify({oldName,newName})});
+    const d=await r.json();
+    hideProgress();
+    if(d.status==='200'){
+      t(d.message,'o');
+      loadWorldList();
+    }else{
+      t('重命名失败: '+(d.error||'未知错误'),'e');
+      loadWorldList();
+    }
+  }catch(e){hideProgress();t('重命名失败: '+e.message,'e');loadWorldList()}
+}
+
+function showCreateWorld(){qs('#create-world-form').style.display='block'}
+function hideCreateWorld(){qs('#create-world-form').style.display='none'}
+
+// ---- EQUIPMENT PRESETS ----
+async function loadPresets(){
+  try{
+    const r=await ap('/api/presets');
+    const d=await r.json();
+    const presets=d.presets||[];
+    const el=qs('#preset-list');
+    
+    if(!presets.length){
+      el.innerHTML='<div style="color:var(--dim)">暂无预设，点击「新建预设」创建</div>';
+      return;
+    }
+    
+    // Build ID->name lookup
+    const idToName={};
+    ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+    
+    let html='';
+    presets.forEach((p,idx)=>{
+      const itemCount=p.items?p.items.length:0;
+      let shortList='';
+      let fullList='';
+      if(p.items&&p.items.length){
+        const prefixIdToName={};PREFIXES.forEach(p=>{prefixIdToName[String(p.id)]=p.n});
+        const makeChip=item=>{
+          const parts=item.split(':');
+          const id=parts[0];
+          const name=idToName[id]||id;
+          let label=esc(name);
+          if(parts.length>=2&&parts[1]!=='0'){const pn=prefixIdToName[parts[1]]||parts[1];label+=' <small style="color:var(--dim)">'+esc(pn)+'</small>'}
+          if(parts.length>=3&&parts[2]!=='1')label+=' <small style="color:var(--gold)">×'+parts[2]+'</small>';
+          return '<span style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:1px 4px;margin:1px;display:inline-block">'+label+'</span>';
+        };
+        shortList=p.items.slice(0,5).map(makeChip).join(' ');
+        if(p.items.length>5)shortList+=' <a href="javascript:void(0)" onclick="togglePresetItems('+idx+')" style="color:var(--cyan);font-size:11px">显示全部('+itemCount+'件)</a>';
+        fullList=p.items.map(makeChip).join(' ');
+      }
+      
+      html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;margin-bottom:6px">`;
+      html+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:${itemCount?'4px':'0'}"><span style="font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.name)}</span><span style="background:var(--surface);color:var(--cyan);font-size:10px;padding:0 4px;border-radius:3px;flex-shrink:0">${itemCount}件</span>`;
+      html+=`<button onclick="applyPreset('${esc(p.name)}')" style="height:22px;padding:0 8px;font-size:11px;border-radius:4px;border:1px solid var(--green);background:var(--green);color:#000;cursor:pointer" title="应用到玩家">应用</button> `;
+      html+=`<button onclick="editPreset('${esc(p.name)}')" style="height:22px;padding:0 6px;font-size:11px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--dim);cursor:pointer" title="编辑">✏️</button> `;
+      html+=`<button onclick="deletePreset('${esc(p.name)}')" style="height:22px;padding:0 6px;font-size:11px;border-radius:4px;border:1px solid var(--red);background:none;color:var(--red);cursor:pointer" title="删除">🗑</button>`;
+      html+=`</div>`;
+      if(itemCount){
+        html+=`<div id="preset-items-short-${idx}" style="line-height:1.8">${shortList}</div>`;
+        if(p.items.length>5)html+=`<div id="preset-items-full-${idx}" style="display:none;line-height:1.8">${fullList} <a href="javascript:void(0)" onclick="togglePresetItems(${idx})" style="color:var(--cyan);font-size:11px">收起</a></div>`;
+      }
+      html+=`</div>`;
+    });
+    el.innerHTML=html;
+  }catch(e){t('加载预设列表失败','e')}
+}
+
+function togglePresetItems(idx){
+  const s=qs('#preset-items-short-'+idx);
+  const f=qs('#preset-items-full-'+idx);
+  if(!s||!f)return;
+  const show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  s.style.display=show?'none':'block';
+}
+
+function showCreatePreset(){if(!window._editingPresetName){_presetItems=[];qs('#preset-save-btn').textContent='保存预设';renderPresetEditor()}qs('#create-preset-form').style.display='block'}
+function hideCreatePreset(){qs('#create-preset-form').style.display='none';window._editingPresetName=null;_presetItems=[];qs('#preset-save-btn').textContent='保存预设'}
+
+function renderPresetEditor(){
+  const el=qs('#preset-editor');
+  if(!_presetItems.length){el.innerHTML='<div style="color:var(--dim);font-size:12px;padding:4px">用上方搜索添加物品</div>';return}
+  const idToName={};ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+  let html='<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  _presetItems.forEach((item,i)=>{
+    const name=item.name||idToName[String(item.id)]||item.id;
+    const knownCat=item.cat in PREFIX_MAP;
+    const allowed=PREFIX_MAP[item.cat]||PREFIXES.map(p=>p.id);
+    let prefixOpts='<option value="0">无前缀</option>';
+    PREFIXES.forEach(p=>{if(p.id>0&&allowed.includes(p.id)){const label=p.t?esc(p.n)+' ['+p.t+']':esc(p.n);const tip=p.effects?esc(p.info+' '+p.effects):esc(p.info||'');prefixOpts+=`<option value="${p.id}"${String(p.id)===String(item.prefix)?' selected':''} title="${tip}">${label}</option>`}});
+    if(item.prefix&&!allowed.includes(item.prefix)){const p=PREFIXES.find(p=>p.id===item.prefix);const label=p?esc(p.n):'ID:'+item.prefix;prefixOpts+=`<option value="${item.prefix}" selected>${label} (不在可选范围)</option>`}
+    html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 4px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(name)} (ID:${item.id})">${esc(name)}</td><td style="padding:6px 4px"><select onchange="_presetItems[${i}].prefix=parseInt(this.value)" style="width:100%;height:32px;font-size:12px">${prefixOpts}</select></td><td style="padding:6px 4px;width:60px"><input type="number" value="${item.count}" min="1" max="9999" onchange="_presetItems[${i}].count=parseInt(this.value)||1" style="width:100%;height:32px;font-size:12px;text-align:center"></td><td style="padding:6px 4px;width:28px"><span onclick="_presetItems.splice(${i},1);renderPresetEditor()" style="cursor:pointer;color:var(--red);font-size:14px" title="删除">✕</span></td></tr>`;
+  });
+  html+='</table>';
+  el.innerHTML=html;
+}
+
+let _searchTimer=null;
+let _presetItems=[];
+function searchPresetItems(q){
+  const el=qs('#preset-search-results');
+  if(!q||!q.trim()){el.style.display='none';el.innerHTML='';return}
+  q=q.trim().toLowerCase();
+  const results=ITEMS.filter(i=>i.n.toLowerCase().includes(q)||String(i.id)===q||String(i.id).startsWith(q)).slice(0,20);
+  if(!results.length){el.style.display='none';return}
+  el.innerHTML=results.map(i=>`<div class="sr" style="display:flex;align-items:center;gap:4px"><span style="flex:1;cursor:pointer" onclick="addPresetItemQuick(${i.id},'${esc(i.n)}')"><span class="sn">${esc(i.n)}</span> <span class="si">ID:${i.id}</span></span><span onclick="addPresetItemCustom(${i.id},'${esc(i.n)}','${i.c||''}',this)" style="cursor:pointer;color:var(--dim);font-size:10px;padding:2px 4px;border-radius:3px;flex-shrink:0" title="自定义前缀/数量">⚙</span></div>`).join('');
+  el.style.display='block';
+}
+function addPresetItemQuick(id,name){
+  const cat=(ITEMS.find(i=>i.id===id)||{}).c||'';
+  _presetItems.push({id,prefix:0,count:1,name:name||'',cat});
+  renderPresetEditor();
+  qs('#preset-item-search').value='';
+  qs('#preset-search-results').style.display='none';
+  qs('#preset-item-search').focus();
+}
+function addPresetItemCustom(id,name,cat,btn){
+  const existing=qs('#add-item-popup');if(existing)existing.remove();
+  const knownCat=cat in PREFIX_MAP;
+  const allowed=PREFIX_MAP[cat]||PREFIXES.map(p=>p.id);
+  let prefixOpts='<option value="0">无前缀</option>';
+  PREFIXES.forEach(p=>{if(p.id>0&&allowed.includes(p.id)){const label=p.t?esc(p.n)+' ['+p.t+']':esc(p.n);const tip=p.effects?esc(p.info+' '+p.effects):esc(p.info||'');prefixOpts+=`<option value="${p.id}" title="${tip}">${label}</option>`}});
+  const noPrefix=allowed.length<=1;
+  if(noPrefix)prefixOpts='<option value="0">无前缀（此类物品无前缀）</option>';
+  const popup=document.createElement('div');
+  popup.id='add-item-popup';
+  popup.style.cssText='position:absolute;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;min-width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+  popup.innerHTML=`<div style="font-size:12px;font-weight:600;margin-bottom:6px">${esc(name)} <span style="color:var(--dim);font-size:11px">ID:${id}${!knownCat?' · 未知类型，显示全部前缀':''}</span></div><div style="display:flex;gap:4px;margin-bottom:6px;align-items:center"><label style="font-size:11px;color:var(--dim);white-space:nowrap">前缀</label><select id="add-item-prefix" style="flex:1;height:28px;font-size:11px"${noPrefix?' disabled':''}>${prefixOpts}</select></div><div style="display:flex;gap:4px;margin-bottom:6px;align-items:center"><label style="font-size:11px;color:var(--dim);white-space:nowrap">数量</label><input id="add-item-count" type="number" value="1" min="1" max="9999" style="flex:1;height:28px;font-size:11px"></div><div style="display:flex;gap:4px"><button onclick="confirmAddItem(${id},'${esc(name)}')" style="flex:1;height:26px;border-radius:4px;border:1px solid var(--green);background:var(--green);color:#000;cursor:pointer;font-size:11px;font-weight:600">添加</button><button onclick="this.closest('#add-item-popup').remove()" style="flex:1;height:26px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:11px">取消</button></div>`;
+  const rect=btn.getBoundingClientRect();
+  popup.style.top=(rect.bottom+4)+'px';
+  popup.style.left=Math.min(rect.left,window.innerWidth-240)+'px';
+  document.body.appendChild(popup);
+  popup.querySelector(noPrefix?'input':'select').focus();
+  setTimeout(()=>{const close=(e)=>{if(!popup.contains(e.target)){popup.remove();document.removeEventListener('click',close)}};document.addEventListener('click',close)},100);
+}
+function confirmAddItem(id,name){
+  const prefix=parseInt(qs('#add-item-prefix').value)||0;
+  const count=parseInt(qs('#add-item-count').value)||1;
+  const cat=(ITEMS.find(i=>i.id===id)||{}).c||'';
+  _presetItems.push({id,prefix,count,name:name||'',cat});
+  renderPresetEditor();
+  qs('#add-item-popup').remove();
+  qs('#preset-item-search').value='';
+  qs('#preset-search-results').style.display='none';
+  qs('#preset-item-search').focus();
+}
+
+async function createPreset(){
+  const name=qs('#preset-name').value.trim();
+  if(!name)return t('请输入预设名称','e');
+  if(!_presetItems.length)return t('请添加物品','e');
+  const items=_presetItems.map(i=>i.prefix||i.count>1?i.id+':'+i.prefix+':'+i.count:String(i.id));
+  try{
+    let r;
+    if(window._editingPresetName){
+      r=await ap('/api/preset/update',{method:'POST',body:JSON.stringify({name,items,originalName:window._editingPresetName})});
+    }else{
+      r=await ap('/api/preset/create',{method:'POST',body:JSON.stringify({name,items})});
+    }
+    const d=await r.json();
+    if(d.status==='200'){
+      t(d.message,'o');
+      qs('#preset-name').value='';
+      _presetItems=[];
+      renderPresetEditor();
+      window._editingPresetName=null;
+      qs('#preset-save-btn').textContent='保存预设';
+      hideCreatePreset();
+      loadPresets();
+    }else{
+      t('保存失败: '+(d.error||'未知错误'),'e');
+    }
+  }catch(e){t('保存失败: '+e.message,'e')}
+}
+
+function editPreset(name){
+  ap('/api/presets').then(r=>r.json()).then(d=>{
+    const preset=(d.presets||[]).find(p=>p.name===name);
+    if(!preset)return t('预设不存在','e');
+    window._editingPresetName=name;
+    qs('#preset-name').value=preset.name;
+    const idToName={};ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+    _presetItems=(preset.items||[]).map(item=>{
+      const parts=item.split(':');
+      const id=parseInt(parts[0])||0;
+      const cat=(ITEMS.find(i=>i.id===id)||{}).c||'';
+      return{id,prefix:parts.length>=2?parseInt(parts[1])||0:0,count:parts.length>=3?parseInt(parts[2])||1:1,name:idToName[String(id)]||String(id),cat};
+    });
+    renderPresetEditor();
+    showCreatePreset();
+    qs('#preset-save-btn').textContent='更新预设';
+    t('编辑完成后点击「更新预设」','o');
+  });
+}
+
+async function deletePreset(name){
+  showConfirm('删除预设 '+name+'？',async()=>{
+    try{
+      const r=await ap('/api/preset/delete',{method:'POST',body:JSON.stringify({name})});
+      const d=await r.json();
+      if(d.status==='200'){
+        t(d.message,'o');
+        loadPresets();
+      }else{
+        t('删除失败: '+(d.error||'未知错误'),'e');
+      }
+    }catch(e){t('删除失败: '+e.message,'e')}
+  });
+}
+
+function applyPreset(presetName){
+  // Show player selection for applying preset
+  if(!selPlayers.length)return t('请先选择玩家','e');
+  showConfirm('应用预设 '+presetName+' 给 '+selPlayers.length+' 个玩家？',async()=>{
+    showProgress('正在应用预设...');
+    try{
+      let allResults=[];
+      let failPlayers=[];
+      for(const player of selPlayers){
+        const r=await ap('/api/preset/apply',{method:'POST',body:JSON.stringify({presetName,player})});
+        const d=await r.json();
+        if(d.status==='200'){
+          allResults.push({player,results:d.results||[]});
+        }else{
+          failPlayers.push(player);
+          t('应用到 '+player+' 失败: '+(d.error||'未知错误'),'e');
+        }
+      }
+      hideProgress();
+      if(allResults.length===1){
+        showApplyResults(allResults[0].player,presetName,allResults[0].results);
+      }else if(allResults.length>1){
+        let totalOk=0,totalFail=0;
+        allResults.forEach(r=>{r.results.forEach(item=>{const ci=item.lastIndexOf(': ');const res=ci>0?item.substring(ci+2):'ok';if(res!=='error'&&!res.toLowerCase().startsWith('error'))totalOk++;else totalFail++})});
+        t(presetName+': '+totalOk+'成功 / '+totalFail+'失败 ('+allResults.length+'人)','o');
+      }
+      if(failPlayers.length)t(failPlayers.length+'人应用失败','e');
+    }catch(e){hideProgress();t('应用失败: '+e.message,'e')}
+  });
+}
+
+// Show preset menu for a specific player
+function showPresetMenu(btn,playerName){
+  // Remove any existing menu
+  const existing=qs('#preset-menu');
+  if(existing)existing.remove();
+  
+  // Load presets and show menu
+  ap('/api/presets').then(r=>r.json()).then(d=>{
+    const presets=d.presets||[];
+    if(!presets.length)return t('暂无预设，请先创建预设','e');
+    
+    const menu=document.createElement('div');
+    menu.id='preset-menu';
+    menu.style.cssText='position:absolute;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;min-width:120px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+    
+    presets.forEach(p=>{
+      const item=document.createElement('div');
+      item.style.cssText='padding:6px 10px;font-size:12px;cursor:pointer;border-radius:4px';
+      item.textContent=p.name+' ('+p.items.length+'件)';
+      item.onmouseover=()=>item.style.background='var(--surface)';
+      item.onmouseout=()=>item.style.background='none';
+      item.onclick=()=>{
+        menu.remove();
+        applyPresetToPlayer(p.name,playerName);
+      };
+      menu.appendChild(item);
+    });
+    
+    // Position menu near the button
+    const rect=btn.getBoundingClientRect();
+    menu.style.top=(rect.bottom+4)+'px';
+    menu.style.left=rect.left+'px';
+    document.body.appendChild(menu);
+    
+    // Close menu when clicking elsewhere
+    setTimeout(()=>{
+      const close=(e)=>{if(!menu.contains(e.target)){menu.remove();document.removeEventListener('click',close)}};
+      document.addEventListener('click',close);
+    },100);
+  });
+}
+
+function showApplyResults(playerName,presetName,results){
+  const existing=qs('#apply-results-popup');
+  if(existing)existing.remove();
+  let okCount=0,failCount=0;
+  const idToName={};
+  ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+  const rows=(results||[]).map(r=>{
+    const colonIdx=r.lastIndexOf(': ');
+    let itemSpec=r,result='ok';
+    if(colonIdx>0){
+      itemSpec=r.substring(0,colonIdx);
+      result=r.substring(colonIdx+2);
+    }
+    const parts=itemSpec.split(':');
+    const id=parts[0];
+    const name=idToName[id]||id;
+    const isOk=result!=='error'&&!result.toLowerCase().startsWith('error');
+    if(isOk)okCount++;else failCount++;
+    return `<div style="padding:3px 0;font-size:12px;display:flex;justify-content:space-between"><span>${esc(name)}</span><span style="color:${isOk?'var(--green)':'var(--red)'}">${isOk?'✓':'✗ '+esc(result)}</span></div>`;
+  }).join('');
+  const popup=document.createElement('div');
+  popup.id='apply-results-popup';
+  popup.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:200;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-width:280px;max-width:400px;max-height:60vh;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4)';
+  popup.innerHTML=`<div style="font-size:14px;font-weight:600;margin-bottom:8px">${esc(presetName)} → ${esc(playerName)}</div><div style="margin-bottom:8px;font-size:12px"><span style="color:var(--green)">${okCount}成功</span> / <span style="color:var(--red)">${failCount}失败</span></div><div style="border-top:1px solid var(--border);padding-top:8px">${rows}</div><div style="margin-top:12px;text-align:center"><button onclick="this.closest('#apply-results-popup').remove()" style="height:28px;padding:0 16px;border-radius:4px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:12px">关闭</button></div>`;
+  document.body.appendChild(popup);
+  popup.querySelector('button').focus();
+}
+
+async function applyPresetToPlayer(presetName,playerName){
+  showProgress('正在应用预设 '+presetName+'...');
+  try{
+    const r=await ap('/api/preset/apply',{method:'POST',body:JSON.stringify({presetName,player:playerName})});
+    const d=await r.json();
+    hideProgress();
+    if(d.status==='200'){
+      showApplyResults(playerName,presetName,d.results||[]);
+    }else{
+      t('应用失败: '+(d.error||'未知错误'),'e');
+    }
+  }catch(e){hideProgress();t('应用失败: '+e.message,'e')}
+}
+
+function showSavePreset(btn,playerName){
+  const existing=qs('#save-preset-popup');
+  if(existing)existing.remove();
+  
+  const popup=document.createElement('div');
+  popup.id='save-preset-popup';
+  popup.style.cssText='position:absolute;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+  popup.innerHTML=`
+    <div style="font-size:11px;margin-bottom:4px;color:var(--dim)">保存 ${esc(playerName)} 装备为预设</div>
+    <div style="display:flex;gap:4px">
+      <input id="save-preset-name" placeholder="预设名称" style="flex:1;height:26px;font-size:12px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 6px">
+      <button onclick="doSavePreset('${esc(playerName)}')" style="height:26px;padding:0 8px;font-size:11px;border:1px solid var(--green);background:var(--green);color:#000;border-radius:4px;cursor:pointer">保存</button>
+    </div>`;
+  
+  const rect=btn.getBoundingClientRect();
+  popup.style.top=(rect.bottom+4)+'px';
+  popup.style.left=rect.left+'px';
+  document.body.appendChild(popup);
+  popup.querySelector('input').focus();
+  
+  setTimeout(()=>{
+    const close=(e)=>{if(!popup.contains(e.target)){popup.remove();document.removeEventListener('click',close)}};
+    document.addEventListener('click',close);
+  },100);
+}
+
+async function doSavePreset(playerName){
+  const name=qs('#save-preset-name').value.trim();
+  if(!name)return t('请输入预设名称','e');
+  try{
+    const r=await ap('/api/playerinfo?player='+encodeURIComponent(playerName));
+    const d=await r.json();
+    if(d.status!=='200')return t('无法获取玩家信息','e');
+    
+    const items=[];
+    const itemsData=d.items||{};
+    
+    // Save inventory items with full data (netID, prefix, stack)
+    if(itemsData.inventory&&itemsData.inventory.length){
+      itemsData.inventory.forEach(i=>{
+        items.push({id:i.netID,prefix:i.prefix,stack:i.stack});
+      });
+    }
+    // Save equipment items
+    if(itemsData.equipment&&itemsData.equipment.length){
+      itemsData.equipment.forEach(i=>{
+        items.push({id:i.netID,prefix:i.prefix,stack:i.stack});
+      });
+    }
+    
+    if(!items.length)return t('玩家背包为空','e');
+    
+    // Save as JSON with full item data
+    const sr=await ap('/api/preset/create',{method:'POST',body:JSON.stringify({name,items:items.map(i=>i.id+':'+i.prefix+':'+i.stack)})});
+    const sd=await sr.json();
+    if(sd.status==='200'||sd.status==='201'){
+      t('已保存预设 '+name+' ('+items.length+'件)','o');
+      qs('#save-preset-popup').remove();
+      loadPresets();
+    }else{
+      t('保存失败: '+(sd.error||'未知错误'),'e');
+    }
+  }catch(e){t('保存失败: '+e.message,'e')}
+}
+
+let progressTimer=null;
+function showProgress(text,seconds){
+  qs('#world-progress').style.display='block';
+  qs('#world-progress-text').textContent=text;
+  if(progressTimer)clearInterval(progressTimer);
+  if(seconds>0){
+    let remaining=seconds;
+    qs('#world-progress-text').textContent=text+' ('+remaining+'秒)';
+    progressTimer=setInterval(()=>{
+      remaining--;
+      if(remaining<=0){
+        clearInterval(progressTimer);
+        qs('#world-progress-text').textContent=text+' (即将完成...)';
+      }else{
+        qs('#world-progress-text').textContent=text+' ('+remaining+'秒)';
+      }
+    },1000);
+  }
+}
+function hideProgress(){
+  qs('#world-progress').style.display='none';
+  if(progressTimer){clearInterval(progressTimer);progressTimer=null}
+}
+
+async function switchWorld(name){
+  if(!name)return;
+  showProgress('正在切换到 '+name+'...',7);
+  
+  try{
+    const r=await ap('/api/world/switch',{method:'POST',body:JSON.stringify({name})});
+    const d=await r.json();
+    if(d.status==='200'){
+      t(d.message,'o');
+      // Poll for server restart
+      setTimeout(()=>pollServerReady(),3000);
+    }else{
+      hideProgress();
+      t('切换失败: '+(d.error||'未知错误'),'e');
+    }
+  }catch(e){hideProgress();t('切换失败: '+e.message,'e')}
+}
+
+async function pollServerReady(){
+  let attempts=0;
+  const maxAttempts=30;
+  
+  const check=async()=>{
+    attempts++;
+    try{
+      const r=await ap('/api/status');
+      if(r.ok){
+        hideProgress();
+        loadWorldList();
+        loadStatus();
+        t('服务器已重启完成','o');
+        return;
+      }
+    }catch(e){}
+    
+    if(attempts<maxAttempts){
+      setTimeout(check,2000);
+    }else{
+      hideProgress();
+      t('服务器重启超时，请手动检查','e');
+    }
+  };
+  
+  check();
+}
+
+async function createWorld(){
+  const name=qs('#new-world-name').value.trim();
+  const size=parseInt(qs('#new-world-size').value);
+  const difficulty=parseInt(qs('#new-world-diff').value);
+  
+  if(!name)return t('请输入世界名称','e');
+  
+  // Estimate time based on size: small=5s, medium=7s, large=7s
+  const estSeconds={1:5,2:7,3:7}[size]||7;
+  showProgress('正在创建世界 '+name+'...',estSeconds);
+  hideCreateWorld();
+  
+  try{
+    const r=await ap('/api/world/create',{method:'POST',body:JSON.stringify({name,size,difficulty})});
+    const d=await r.json();
+    if(d.status==='200'){
+      t(d.message,'o');
+      qs('#new-world-name').value='';
+      // Poll for server restart
+      setTimeout(()=>pollServerReady(),3000);
+    }else{
+      hideProgress();
+      t('创建失败: '+(d.error||'未知错误'),'e');
+    }
+  }catch(e){hideProgress();t('创建失败: '+e.message,'e')}
+}
+
+// Player operations
+async function apiHeal(player){return await apiPost('/api/player/heal',{player})}
+async function apiKill(player){return await apiPost('/api/player/kill',{player})}
+async function apiKick(player){return await apiPost('/api/player/kick',{player})}
+async function apiBan(player){return await apiPost('/api/player/ban',{player})}
+async function apiMute(player){return await apiPost('/api/player/mute',{player})}
+async function apiGive(player,item,amount){return await apiPost('/api/player/give',{player,item,amount})}
+async function apiTp(from,to){return await apiPost('/api/player/tp',{from,to})}
+
+// Spawn operations
+async function apiSpawnBoss(boss){return await apiPost('/api/spawn/boss',{boss})}
+async function apiSpawnMob(mob){return await apiPost('/api/spawn/mob',{mob})}
+
+// Time operations
+async function apiMaxspawns(){return await apiPost('/api/world/maxspawns')}
+async function apiTime(time){return await apiPost('/api/time',{time})}
+
+function handleCmdResult(data){
+  if(!data)return;
+  if(data.response){
+    const resp=Array.isArray(data.response)?data.response.join(' '):data.response;
+    if(resp.trim())t('✓ '+resp.trim(),'o');
+  }else if(data.error){
+    t('✗ '+data.error,'e');
+  }
+}
+
+// Send command via WebSocket (fallback to HTTP)
+async function wsCmd(cmd){
+  if(ws&&ws.readyState===WebSocket.OPEN){
+    ws.send(JSON.stringify({type:'cmd',payload:cmd}));
+  }else{
+    // Fallback to HTTP
+    await rc(cmd);
+  }
+}
+
+// Start log streaming via WebSocket
+function startLogStream(){
+  if(ws&&ws.readyState===WebSocket.OPEN){
+    // Logs are automatically streamed via WebSocket
+    return;
+  }
+  // Fallback to SSE
+  loadLogsSSE();
+}
+
+function t(m,type='o',duration=5000){
+  const e=document.createElement('div');e.className='tt '+type;e.textContent=m;
+  qs('#tt').appendChild(e);setTimeout(()=>e.remove(),duration);
+}
+
+async function ap(path,opts={}){
+  const r=await fetch(path,{credentials:'include',...opts,headers:{'Content-Type':'application/json',...opts.headers}});
+  if(r.status===401){logout();throw new Error('未登录')}
+  return r;
+}
+
+// Raw command
+async function rc(cmd){
+  let c=cmd;
+  if(!c){const i=qs('#ci');c=i.value.trim();i.value=''}
+  if(!c)return;
+  try{
+    const r=await ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:c})});
+    const d=await r.json();
+    const resp=d.response||'';
+    const txt=Array.isArray(resp)?resp.join(' '):resp;
+    let msg=txt.trim()||c.split(' ')[0];
+    // For /time commands, show resulting time
+    if(c.startsWith('/time ')&&!resp.length){
+      try{const tr=await ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:'/time'})});const td=await tr.json();
+        const tr2=Array.isArray(td.response)?td.response.join(' '):(td.response||'');
+        if(tr2)msg+=' → '+tr2.replace('The current time is ','');
+      }catch(e){}
+    }
+    t('✓ '+msg,'o');
+  }catch(e){t('✗ '+e.message,'e')}
+}
+
+// Status
+async function loadStatus(){
+  try{
+    const r=await ap('/api/status');const d=await r.json();
+    qs('#oc').textContent=d.playercount||'0';
+    window._tshockInternalWorldName=d.world||'';
+    updateTopWorldName(window._tshockInternalWorldName);
+    let bm='-',dt='-',tm='-',md='-',inv='-',sp='-',ab='-';
+    try{
+      const [wr,ir]=await Promise.all([
+        ap('/api/worldread').then(r=>r.json()),
+        ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:'/worldinfo'})}).then(r=>r.json())
+      ]);
+      if(wr.status==='200'){
+        bm=wr.bloodmoon?'🔴 血月':'🌙 正常';
+        dt=wr.daytime?'☀ 白天':'🌃 夜晚';
+        const h=Math.floor(wr.time/3600)%24;const m=Math.floor(wr.time%3600/60);
+        tm=h.toString().padStart(2,'0')+':'+m.toString().padStart(2,'0');
+        inv=wr.invasionsize>0?'👾 入侵('+wr.invasionsize+')':'—';
+        // Sync bloodmoon button state
+        evtState.bloodmoon=!!wr.bloodmoon;
+        saveEvtState();
+        const bmBtn=qs('[data-evt="bloodmoon"]');
+        if(bmBtn)bmBtn.classList.toggle('on',!!wr.bloodmoon);
+        sp=swState.protectspawn?'🏳 保护':'—';
+        ab=swState.antibuild?'🚧 禁建':'—';
+      }
+      if(ir.response){
+        const txt=Array.isArray(ir.response)?ir.response.join(''):ir.response;
+        const m=txt.match(/Mode:\s*(\d)/);
+        if(m)md={0:'Normal',1:'Expert',2:'Master',3:'Journey'}[m[1]]||'?'+m[1];
+      }
+    }catch(e){}
+    qs('#sg').innerHTML=`
+      <div class="sc"><div class="v">${d.playercount||0}</div><div class="l">在线</div></div>
+      <div class="sc"><div class="v">${d.uptime||'-'}</div><div class="l">运行</div></div>
+      <div class="sc"><div class="v">${dt}</div><div class="l">${tm}</div></div>
+      <div class="sc"><div class="v">${bm}</div><div class="l">天象</div></div>
+      <div class="sc"><div class="v">${inv}</div><div class="l">入侵</div></div>
+      <div class="sc"><div class="v">${sp}</div><div class="l">出生点</div></div>
+      <div class="sc"><div class="v">${ab}</div><div class="l">建造</div></div>
+      <div class="sc"><div class="v">${md}</div><div class="l">难度</div></div>
+      <div class="sc"><div class="v">${window._currentWorldFile||d.world||'-'}</div><div class="l">世界</div></div>`;
+    qs('#sit').innerHTML=`
+      <tr><td style="padding:4px 8px">版本</td><td style="padding:4px 8px">${d.serverversion||'-'}</td></tr>
+      <tr><td style="padding:4px 8px">TShock</td><td style="padding:4px 8px">${d.tshockversion||'-'}</td></tr>
+      <tr><td style="padding:4px 8px">运行</td><td style="padding:4px 8px">${d.uptime||'-'}</td></tr>
+      <tr><td style="padding:4px 8px">世界</td><td style="padding:4px 8px">${d.world||'-'}</td></tr>
+      <tr><td style="padding:4px 8px">在线/最大</td><td style="padding:4px 8px">${d.playercount||0}/${d.maxplayers||'-'}</td></tr>`;
+  }catch(e){}
+}
+
+// Render players
+function renderPlayers(container, selbar){
+  const el=qs(container),sb=qs(selbar);
+  const list=getFilteredPlayers();
+  el.innerHTML='';
+  if(!list.length){
+    if(container==='#pl')qs('#np').style.display='block';
+    sb.classList.remove('on');return
+  }
+  if(container==='#pl')qs('#np').style.display='none';
+  list.forEach(p=>{
+    const d=document.createElement('div');d.className='pc';d.dataset.name=p.name;
+    if(selPlayers.includes(p.name))d.classList.add('sel');
+    const gn=p.group?('<span class="g">'+esc(p.group)+'</span>'):'';
+    d.innerHTML=`
+      <input type="checkbox" ${selPlayers.includes(p.name)?'checked':''} onchange="toggleSel('${esc(p.name)}',this.checked)">
+      <div class="i" onclick="event.stopPropagation();showPi('${esc(p.name)}')" style="cursor:pointer">
+        <span class="n">${esc(p.name)}</span>${gn}<span class="h" id="lt-${esc(p.name)}"></span>
+      </div>
+      <div class="a">
+        <button class="gn" onclick="event.stopPropagation();openGiveFor('${esc(p.name)}')" title="给物品">🎁</button>
+        <button class="gn" onclick="event.stopPropagation();showPresetMenu(this,'${esc(p.name)}')" title="应用预设">⚙️</button>
+        <button class="gn" onclick="event.stopPropagation();showSavePreset(this,'${esc(p.name)}')" title="保存为预设">💾</button>
+
+        <button class="cy" onclick="event.stopPropagation();showTpMenu(this,'${esc(p.name)}','pull')" title="拉到某玩家身边">📍拉</button>
+        <button class="cy" onclick="event.stopPropagation();showTpMenu(this,'${esc(p.name)}','goto')" title="传送到某玩家身边">📍去</button>
+        <button class="gn" onclick="event.stopPropagation();rc('/heal ${esc(p.name)}')" title="治疗">❤️</button>
+        <button class="re" onclick="event.stopPropagation();killpb('${esc(p.name)}')" title="击杀">💀</button>
+        <button class="re" onclick="event.stopPropagation();kpb('${esc(p.name)}')" title="踢出">👢</button>
+        <button class="re" onclick="event.stopPropagation();bpb('${esc(p.name)}')" title="封禁">🔨</button>
+        <button class="cy" onclick="event.stopPropagation();rc('/mute \"${esc(p.name)}\"')" title="禁言/解禁">🔇</button>
+      </div>`;
+    el.appendChild(d);
+  });
+  updateSelBar(sb);
+}
+
+function toggleSel(name,checked){
+  if(checked&&!selPlayers.includes(name))selPlayers.push(name);
+  else if(!checked)selPlayers=selPlayers.filter(n=>n!==name);
+  renderPlayers('#pl','#selbar');
+}
+
+function showTpMenu(btn,player,mode){
+  const others=players.filter(p=>p.name!==player);
+  if(!others.length)return t('没有其他在线玩家','e');
+  const rect=btn.getBoundingClientRect();
+  let menu=document.querySelector('#tp-menu');
+  if(menu)menu.remove();
+  menu=document.createElement('div');
+  menu.id='tp-menu';
+  menu.style.cssText='position:fixed;z-index:100;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;min-width:120px;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
+  menu.style.left=Math.min(rect.left,window.innerWidth-140)+'px';
+  menu.style.top=Math.min(rect.bottom,window.innerHeight-200)+'px';
+  const label=mode==='pull'?'拉到':'去到';
+  others.forEach(p=>{
+    const item=document.createElement('div');
+    item.style.cssText='padding:6px 10px;cursor:pointer;font-size:12px;border-radius:4px;white-space:nowrap';
+    item.textContent=p.name;
+    item.onmouseenter=()=>item.style.background='var(--surface)';
+    item.onmouseleave=()=>item.style.background='';
+    item.onclick=()=>{
+      const from=mode==='pull'?p.name:player;
+      const to=mode==='pull'?player:p.name;
+      if(ws&&ws.readyState===WebSocket.OPEN){
+        ws.send(JSON.stringify({type:'player_tp',payload:{from,to}}));
+      }else{
+        const cmd=mode==='pull'?`/tprest "${p.name}" "${player}"`:`/tprest "${player}" "${p.name}"`;
+        rc(cmd);
+      }
+      menu.remove();
+    };
+    menu.appendChild(item);
+  });
+  document.body.appendChild(menu);
+  setTimeout(()=>{document.addEventListener('click',function h(){menu.remove();document.removeEventListener('click',h)})},0);
+}
+
+function updateSelBar(sb){
+  if(!selPlayers.length){sb.classList.remove('on');return}
+  sb.classList.add('on');
+  const n=selPlayers.length;
+  sb.innerHTML=`<span class="c">已选 ${n} 人</span>
+    <button class="go" onclick="batchGive()">🎁 给物品</button>
+    <button class="cy" onclick="batchTp()">📍 全拉过来</button>
+    <button class="gn" onclick="batchHeal()">❤️ 治疗</button>
+    <button class="cy" onclick="batchMute()">🔇 禁言</button>
+    <button class="re" onclick="batchKick()">👢 踢出</button>
+    <button class="re" onclick="batchBan()">🔨 封禁</button>
+    <button class="re" onclick="batchKill()">💀 击杀</button>
+    <button class="cy" onclick="batchSlap()">🤚 耳光</button>
+    <button class="cy" onclick="batchAnnoy()">😤 骚扰</button>
+    <button class="cy" onclick="batchRocket()">🚀 火箭</button>
+    <button class="cy" onclick="batchFirework()">🎆 烟花</button>
+    <button style="font-size:10px;color:var(--dim);background:none" onclick="selPlayers=[];renderPlayers('#pl','#selbar')">取消选择</button>`;
+}
+function batchGive(){openGiveFor(selPlayers)}
+function batchTp(){
+  const target=selPlayers[0];
+  selPlayers.forEach(p=>{
+    if(p===target)return;
+    if(ws&&ws.readyState===WebSocket.OPEN){
+      ws.send(JSON.stringify({type:'player_tp',payload:{from:p,to:target}}));
+    }else{
+      rc('/tprest "'+p+'" "'+target+'"');
+    }
+  });
+}
+function healAll(){
+  players.forEach(p=>rc('/heal "'+p.name+'"'));
+}
+function batchHeal(){
+  selPlayers.forEach(p=>apiHeal(p).then(r=>t(r.response?r.response.join(' '):'治疗完成')));
+}
+function batchKick(){
+  selPlayers.forEach(p=>apiKick(p).then(r=>t(r.response?r.response.join(' '):'踢出完成')));
+}
+function batchBan(){
+  selPlayers.forEach(p=>apiBan(p).then(r=>t(r.response?r.response.join(' '):'封禁完成')));
+}
+function batchCmd(cmd){rc(cmd)}
+function batchCmdToSel(prefix){
+  const names=selPlayers.map(n=>'"'+n+'"').join(' ');
+  rc(prefix+' '+names);
+}
+
+function showConfirm(msg,fn){
+  qs('#confirm-msg').textContent=msg;
+  qs('#confirm-bar').classList.add('on');
+  qs('#confirm-yes').onclick=()=>{qs('#confirm-bar').classList.remove('on');fn()};
+  qs('#confirm-no').onclick=()=>qs('#confirm-bar').classList.remove('on');
+}
+function killpb(n){showConfirm('击杀 '+n+'？',()=>apiKill(n).then(r=>t(r.response?r.response.join(' '):'击杀完成')))}
+function kpb(n){showConfirm('踢出 '+n+'？',()=>apiKick(n).then(r=>t(r.response?r.response.join(' '):'踢出完成')))}
+function bpb(n){showConfirm('封禁 '+n+'？',()=>apiBan(n).then(r=>t(r.response?r.response.join(' '):'封禁完成')))}
+function batchMute(){selPlayers.forEach(p=>apiMute(p).then(r=>t(r.response?r.response.join(' '):'禁言完成')))}
+function batchKill(){selPlayers.forEach(p=>apiKill(p).then(r=>t(r.response?r.response.join(' '):'击杀完成')))}
+function batchSlap(){batchCmdToSel('/slap')}
+function batchAnnoy(){
+  selPlayers.forEach(p=>rc('/annoy "'+p+'" 10'));
+}
+function batchRocket(){t('/rocket 需开启SSC才能使用','e')}
+function batchFirework(){batchCmdToSel('/firework')}
+
+// ---- GIVE ITEMS ----
+let gmCurCat='all';
+function openGiveFor(target){
+  selPlayers=typeof target==='string'?[target]:target;
+  qs('#give-modal').classList.add('on');
+  renderPlayers('#pl','#selbar');
+  qs('#gm-targets').innerHTML=selPlayers.map(n=>'<span class="item-chip">'+esc(n)+'</span>').join('');
+  qs('#gm-search').value='';
+  qs('#gm-sel').textContent='未选择物品'; qs('#gm-sel').className='sel-none';
+  selItem=null;
+  gmCurCat='all';
+  renderCats();
+  renderItems();
+}
+function closeGive(){
+  qs('#give-modal').classList.remove('on');
+}
+function renderCats(){
+  const el=qs('#gm-cats');
+  let h='<button class="on" data-c="all">📋 全部</button>';
+  CAT_ORDER.forEach(k=>{
+    h+='<button data-c="'+k+'">'+CATS[k]+'</button>';
+  });
+  el.innerHTML=h;
+  el.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click',()=>{
+      el.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      gmCurCat=b.dataset.c;
+      renderItems();
+    });
+  });
+}
+function renderItems(){
+  const q=qs('#gm-search').value.trim().toLowerCase();
+  const el=qs('#gm-items');
+  let list=ITEMS;
+  if(gmCurCat!=='all')list=list.filter(i=>i.c===gmCurCat);
+  if(q)list=list.filter(i=>i.n.toLowerCase().includes(q)||String(i.id).includes(q));
+  el.innerHTML=list.map(i=>{
+    const sel=selItem&&selItem.id===i.id?' sel':'';
+    return '<div class="it r'+i.r+sel+'" data-id="'+i.id+'" data-name="'+esc(i.n)+'"><div class="in">'+esc(i.n)+'</div><div class="ii">ID:'+i.id+'</div></div>';
+  }).join('');
+  el.querySelectorAll('.it').forEach(d=>{
+    d.addEventListener('click',()=>{
+      el.querySelectorAll('.it').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      selItem={id:parseInt(d.dataset.id),name:d.dataset.name};
+      qs('#gm-sel').textContent=selItem.name+' (ID:'+selItem.id+')';
+      qs('#gm-sel').className='sel-name';
+    });
+  });
+}
+async function giveItem(){
+  try{
+    if(!selItem)return t('请点击选择物品','e');
+    if(!selPlayers.length)return t('没有选择目标玩家','e');
+    const q=parseInt(qs('#gm-iq').value)||1;
+    for(const p of selPlayers){
+      const r=await fetch('/api/rawcmd',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'/give '+selItem.id+' "'+p+'" '+q})});
+      if(!r.ok){t('请求失败: '+r.status,'e');return}
+    }
+    t('已发放 '+selItem.name+' x'+q+' 给 '+selPlayers.length+' 人','o');
+    closeGive();
+  }catch(e){t('错误: '+e.message,'e')}
+}
+async function giveManualItem(){
+  try{
+    const id=parseInt(qs('#gm-manual-id').value);
+    if(!id||id<1)return t('请输入有效的物品ID','e');
+    if(!selPlayers.length)return t('没有选择目标玩家','e');
+    const q=parseInt(qs('#gm-iq').value)||1;
+    let ok=0,fail=0;
+    for(const p of selPlayers){
+      const r=await fetch('/api/rawcmd',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({cmd:'/give '+id+' "'+p+'" '+q})});
+      if(!r.ok){fail++;continue}
+      const d=await r.json();
+      const resp=d.response||[];
+      if(resp.length&&resp[0].includes('Gave'))ok++;
+      else if(resp.length&&resp[0].includes('free slots')){ok++;t(p+' 背包已满','e')}
+      else{fail++;t('ID '+id+': '+(resp[0]||'失败'),'e')}
+    }
+    if(ok)t('已发放 ID:'+id+' x'+q+' 给 '+ok+' 人','o');
+    if(fail&&!ok)t('发放失败','e');
+  }catch(e){t('错误: '+e.message,'e')}
+}
+
+// Users
+// ---- GROUP OPTIONS HELPER ----
+async function loadGroupOptions(){
+  try{
+    const r=await ap('/api/grouplist');const d=await r.json();
+    const list=d.groups||[];
+    const selects=['#nu-group','#eu-group','#ng-parent'];
+    selects.forEach(s=>{
+      const el=qs(s);if(!el)return;
+      const cur=el.value;
+      el.innerHTML='';
+      if(s==='#eu-group')el.innerHTML='<option value="">不改分组</option>';
+      if(s==='#ng-parent')el.innerHTML='<option value="">无父组</option>';
+      list.forEach(g=>{const o=document.createElement('option');o.value=g.name;o.textContent=g.name;el.appendChild(o)});
+      if(cur)el.value=cur;
+    });
+  }catch(e){}
+}
+// ---- GROUPS ----
+async function loadGroups(){
+  try{
+    const r=await ap('/api/grouplist');const d=await r.json();
+    const list=d.groups||[];
+    const el=qs('#gl');
+    if(!list.length){el.innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">暂无分组</div>';return}
+    let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:var(--dim);font-size:12px"><th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)">组名</th><th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)">父组</th><th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)">操作</th></tr>';
+    for(const g of list){
+      let perms='', negs='';
+      try{const pr=await ap('/api/groupread?group='+encodeURIComponent(g.name));const pd=await pr.json();
+        perms=(pd.totalpermissions||pd.permissions||[]).join(', ');
+        negs=(pd.negatedpermissions||[]).join(', ');
+      }catch(e){}
+      const ps=perms||'(无权限)';
+      h+=`<tr><td style="padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer" onclick="showGroupPerms('${esc(g.name)}','${esc(ps)}','${esc(negs)}')"><span style="color:var(--cyan)">${esc(g.name)}</span> <small style="color:var(--dim)">👁</small></td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border)">${esc(g.parent||'-')}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:right">
+        <button class="re" style="font-size:10px;padding:2px 6px" onclick="event.stopPropagation();delGroup('${esc(g.name)}')">🗑</button>
+      </td></tr>`;
+    }
+    el.innerHTML=h+'</table>';
+    loadGroupOptions();
+  }catch(e){}
+}
+function showGroupPerms(n,ps,negs){
+  qs('#pd-name').textContent=n;
+  qs('#pd-list').innerHTML='<div style="margin-bottom:6px;color:var(--green)">允许:</div><div>'+esc(ps||'(无)')+'</div>'+
+    (negs?'<div style="margin-top:10px;margin-bottom:6px;color:var(--red)">禁止:</div><div>'+esc(negs)+'</div>':'');
+  qs('#pd-modal').classList.add('on');
+}
+function closePd(){qs('#pd-modal').classList.remove('on')}
+async function addGroup(){
+  const n=qs('#ng-name').value.trim();const p=qs('#ng-perms').value.trim();const pa=qs('#ng-parent').value;
+  if(!n){return t('请输入组名','e')}
+  const body={group:n};if(p)body.permissions=p;if(pa)body.parent=pa;
+  try{
+    const r=await ap('/api/groupcreate',{method:'POST',body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.status==='200'){t('组 '+n+' 已创建');qs('#ng-name').value='';qs('#ng-perms').value='';loadGroups()}
+    else t('创建失败: '+(d.error||'未知错误'),'e');
+  }catch(e){t('创建失败','e')}
+}
+async function delGroup(n){
+  try{
+    const r=await ap('/api/groupdelete',{method:'POST',body:JSON.stringify({group:n})});
+    const d=await r.json();
+    if(d.status==='200'){t('组 '+n+' 已删除');loadGroups()}
+    else t('删除失败: '+(d.error||'未知错误'),'e');
+  }catch(e){t('删除失败','e')}
+}
+
+async function loadUsers(){
+  try{
+    const r=await ap('/api/users');const d=await r.json();
+    const list=d.users||[];
+    const el=qs('#ul');
+    if(!list.length){el.innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">暂无用户</div>';return}
+    let h='<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="color:var(--dim);font-size:12px"><th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)">用户名</th><th style="text-align:left;padding:6px 10px;border-bottom:1px solid var(--border)">分组</th><th style="text-align:right;padding:6px 10px;border-bottom:1px solid var(--border)">操作</th></tr>';
+    list.forEach(u=>{
+      const n=u.name||u.Username||'';
+      const g=u.group||u.Group||'';
+      h+=`<tr><td style="padding:6px 10px;border-bottom:1px solid var(--border)">${esc(n)}</td><td style="padding:6px 10px;border-bottom:1px solid var(--border)"><span style="font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surface);color:var(--cyan)">${esc(g)}</span></td>
+      <td style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:right">
+        <button class="cy" style="font-size:10px;padding:2px 6px" onclick="editUser('${esc(n)}','${esc(g)}')">✏️</button>
+        <button class="re" style="font-size:10px;padding:2px 6px" onclick="delUser('${esc(n)}')">🗑</button>
+      </td></tr>`;
+    });
+    el.innerHTML=h+'</table>';
+  }catch(e){}
+}
+async function addUser(){
+  const n=qs('#nu-name').value.trim();const p=qs('#nu-pass').value;const g=qs('#nu-group').value;if(!g)return t('请选择分组','e');
+  if(!n||!p){return t('请输入用户名和密码','e')}
+  try{
+    const r=await ap('/api/usercreate',{method:'POST',body:JSON.stringify({user:n,password:p,group:g})});
+    const d=await r.json();
+    if(d.status==='200'){t('用户 '+n+' 已添加');qs('#nu-name').value='';qs('#nu-pass').value='';loadUsers()}
+    else t('添加失败: '+(d.error||'未知错误'),'e');
+  }catch(e){t('添加失败','e')}
+}
+async function delUser(n){
+  try{
+    const r=await ap('/api/userdelete',{method:'POST',body:JSON.stringify({user:n})});
+    const d=await r.json();
+    if(d.status==='200'){t('用户 '+n+' 已删除');loadUsers()}
+    else t('删除失败: '+(d.error||'未知错误'),'e');
+  }catch(e){t('删除失败','e')}
+}
+function editUser(n,g){
+  qs('#eu-title').textContent='编辑用户: '+n;
+  qs('#eu-pass').value='';
+  qs('#eu-group').value=g;
+  qs('#eu-cg').textContent=g;
+  qs('#eu-modal').dataset.user=n;
+  qs('#eu-modal').classList.add('on');
+}
+function closeEu(){qs('#eu-modal').classList.remove('on')}
+async function saveEu(){
+  const n=qs('#eu-modal').dataset.user;
+  const p=qs('#eu-pass').value;
+  const g=qs('#eu-group').value;
+  const body={user:n,group:g||qs('#eu-cg').textContent};
+  if(p)body.password=p;
+  try{
+    const r=await ap('/api/userupdate',{method:'POST',body:JSON.stringify(body)});
+    const d=await r.json();
+    if(d.status==='200'){t('用户已更新');closeEu();loadUsers()}
+    else t('更新失败: '+(d.error||'未知错误'),'e');
+  }catch(e){t('更新失败','e')}
+}
+
+// Nav
+document.querySelectorAll('.nb').forEach(b=>{
+  b.addEventListener('click',function(){
+    document.querySelectorAll('.nb').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+    document.querySelectorAll('.t').forEach(t=>t.classList.remove('on'));
+    qs('#t-'+this.dataset.t).classList.add('on');
+    if(this.dataset.t==='actions')loadWorldState();
+    if(this.dataset.t==='users'){loadUsers();loadGroups();}
+    if(this.dataset.t==='log')loadLogs();
+    if(this.dataset.t!=='log'&&window._logSse){window._logSse.close();window._logSse=null}
+  });
+});
+
+async function loadPlayers(){
+  try{
+    const r=await ap('/api/status');const d=await r.json();
+    // Since /status doesn't give player names, and /playing gives text, we'll
+    // try to extract from rawcmd /playing
+  }catch(e){}
+}
+
+// Override - get player names from /playing
+async function refreshPlayerList(){
+  try{
+    const r=await ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:'/playing'})});
+    const d=await r.json();
+    const txt=Array.isArray(d.response)?d.response.join('\n'):(d.response||'');
+    const lines=txt.split('\n').filter(l=>l.trim()&&!l.includes('Online Players')&&!l.includes('no players'));
+    const names=[];
+    lines.forEach(line=>{
+      line.split(',').forEach(n=>{
+        const t=n.trim(); 
+        if(t)names.push(t);
+      });
+    });
+    players=names.map(n=>({name:n}));
+    qs('#pc').textContent='('+players.length+' 人)';
+    renderPlayers('#pl','#selbar');
+    loadJoinTimes();
+  }catch(e){}
+}
+
+let _joinTimes={};
+async function loadJoinTimes(){
+  try{
+    const r=await ap('/api/player/jointimes');
+    const d=await r.json();
+    if(d.joinTimes)_joinTimes=d.joinTimes;
+    updateJoinTimeDisplay();
+  }catch(e){}
+}
+function onPlayerJoin(payload){
+  if(!payload||!payload.name)return;
+  const name=payload.name;
+  if(players.some(p=>p.name===name))return;
+  players.push({name:name});
+  _joinTimes[name]=0;
+  qs('#pc').textContent='('+players.length+' 人)';
+  qs('#np').style.display='none';
+  renderPlayers('#pl','#selbar');
+  t(name+' 加入了服务器','i');
+}
+
+function onPlayerLeave(payload){
+  if(!payload||!payload.name)return;
+  const name=payload.name;
+  players=players.filter(p=>p.name!==name);
+  delete _joinTimes[name];
+  selPlayers=selPlayers.filter(n=>n!==name);
+  qs('#pc').textContent='('+players.length+' 人)';
+  if(!players.length)qs('#np').style.display='block';
+  renderPlayers('#pl','#selbar');
+  t(name+' 离开了服务器','w');
+}
+
+function loadPlayerTrail(name,count){
+  const c=count!=null?count:parseInt(qs('#pi-trail-limit')?.value)||200;
+  ap('/api/player/trail?player='+encodeURIComponent(name)+'&count='+c).then(r=>r.json()).then(d=>{
+    if(d.status!=='200'||!d.trail||!d.trail.length){qs('#pi-trail-wrap').style.display='none';return}
+    qs('#pi-trail-wrap').style.display='block';
+    qs('#pi-trail-count').textContent='('+d.trail.length+'点)';
+    drawTrail(d.trail);
+  }).catch(()=>qs('#pi-trail-wrap').style.display='none');
+}
+function resetTrailView(){_trailZoom=1;_trailPanX=0;_trailPanY=0;redrawTrailCanvas()}
+function clearTrailPlayer(){if(!piName)return;ap('/api/player/trail/clear',{method:'POST',body:JSON.stringify({player:piName})}).then(()=>{loadPlayerTrail(piName)}).catch(()=>{})}
+function clearTrails(scope){ap('/api/player/trail/clear',{method:'POST',body:JSON.stringify({scope})}).then(()=>{if(piName)loadPlayerTrail(piName)}).catch(()=>{})}
+
+let _trailData=null,_trailZoom=1,_trailPanX=0,_trailPanY=0,_trailDrag=false,_trailDragX=0,_trailDragY=0,_trailBounds=null;
+
+function drawTrail(trail){
+  _trailData=trail;
+  if(_trailBounds){
+    let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
+    trail.forEach(p=>{mnX=Math.min(mnX,p.x);mxX=Math.max(mxX,p.x);mnY=Math.min(mnY,p.y);mxY=Math.max(mxY,p.y)});
+    const cx1=(_trailBounds.mnX+_trailBounds.mxX)/2,cy1=(_trailBounds.mnY+_trailBounds.mxY)/2;
+    const cx2=(mnX+mxX)/2,cy2=(mnY+mxY)/2;
+    const rx1=_trailBounds.mxX-_trailBounds.mnX||1,ry1=_trailBounds.mxY-_trailBounds.mnY||1;
+    const rx2=mxX-mnX||1,ry2=mxY-mnY||1;
+    if(Math.abs(cx2-cx1)/rx1<0.1&&Math.abs(cy2-cy1)/ry1<0.1&&Math.abs(rx2-rx1)/rx1<0.1&&Math.abs(ry2-ry1)/ry1<0.1){
+      redrawTrailCanvas();return;
+    }
+  }
+  _trailZoom=1;_trailPanX=0;_trailPanY=0;
+  redrawTrailCanvas();
+}
+
+function redrawTrailCanvas(){
+  const trail=_trailData;
+  const cv=qs('#pi-trail-canvas'),ctx=cv.getContext('2d'),W=cv.width,H=cv.height,P=10;
+  ctx.clearRect(0,0,W,H);
+  if(!trail||!trail.length)return;
+  let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
+  trail.forEach(p=>{mnX=Math.min(mnX,p.x);mxX=Math.max(mxX,p.x);mnY=Math.min(mnY,p.y);mxY=Math.max(mxY,p.y)});
+  _trailBounds={mnX,mxX,mnY,mxY};
+  const rx=(mxX-mnX)||1,ry=(mxY-mnY)||1;
+  const bx=(W-P*2)/rx,by=(H-P*2)/ry,bs=Math.min(bx,by);
+  const bx0=P+(W-P*2-rx*bs)/2,by0=P+(H-P*2-ry*bs)/2;
+  const tx=x=>(bx0+(x-mnX)*bs)*_trailZoom+_trailPanX+W/2*(1-_trailZoom);
+  const ty=y=>(by0+(y-mnY)*bs)*_trailZoom+_trailPanY+H/2*(1-_trailZoom);
+  const cs=getComputedStyle(document.documentElement);
+  const dimC=cs.getPropertyValue('--dim').trim()||'#666';
+  const grnC=cs.getPropertyValue('--green').trim()||'#0f0';
+  const cyanC=cs.getPropertyValue('--cyan').trim()||'#0bc';
+  const borderC=cs.getPropertyValue('--border').trim()||'#aaa';
+  ctx.lineWidth=1;ctx.strokeStyle=borderC;ctx.globalAlpha=0.3;
+  const gs=Math.max(100,Math.pow(10,Math.floor(Math.log10(Math.max(rx,ry)))));
+  const stX=Math.ceil(mnX/gs)*gs,stY=Math.ceil(mnY/gs)*gs;
+  for(let gx=stX;gx<=mxX+gs;gx+=gs){const sx=tx(gx);if(sx>=-10&&sx<=W+10){ctx.beginPath();ctx.moveTo(sx,0);ctx.lineTo(sx,H);ctx.stroke()}}
+  for(let gy=stY;gy<=mxY+gs;gy+=gs){const sy=ty(gy);if(sy>=-10&&sy<=H+10){ctx.beginPath();ctx.moveTo(0,sy);ctx.lineTo(W,sy);ctx.stroke()}}
+  ctx.globalAlpha=1;
+  const others=players.filter(p=>p.name!==piName);
+  others.forEach(p=>{
+    const ot=_otherPlayerPos[p.name];
+    if(!ot)return;
+    const sx=tx(ot.x),sy=ty(ot.y);
+    if(sx<-20||sx>W+20||sy<-20||sy>H+20)return;
+    ctx.globalAlpha=0.7;ctx.fillStyle=cyanC;ctx.beginPath();ctx.arc(sx,sy,3,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=0.8;ctx.font='9px sans-serif';ctx.fillStyle=cyanC;ctx.textAlign='left';
+    ctx.fillText(p.name+' ('+ot.x.toFixed(0)+','+ot.y.toFixed(0)+')',sx+5,sy-2);
+  });
+  ctx.lineWidth=1.5;ctx.lineCap='round';ctx.lineJoin='round';
+  const teleDist=200;
+  let segStart=0;
+  for(let i=1;i<trail.length;i++){
+    const dx=trail[i].x-trail[i-1].x,dy=trail[i].y-trail[i-1].y;
+    if(Math.sqrt(dx*dx+dy*dy)>teleDist){
+      drawTrailSeg(ctx,trail,segStart,i,tx,ty,dimC);
+      segStart=i;
+    }
+  }
+  drawTrailSeg(ctx,trail,segStart,trail.length,tx,ty,dimC);
+  ctx.fillStyle=dimC;ctx.globalAlpha=0.5;ctx.beginPath();ctx.arc(tx(trail[0].x),ty(trail[0].y),3,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;ctx.fillStyle=grnC;ctx.beginPath();ctx.arc(tx(trail[trail.length-1].x),ty(trail[trail.length-1].y),4,0,Math.PI*2);ctx.fill();
+  ctx.font='9px sans-serif';ctx.fillStyle=grnC;ctx.textAlign='left';
+  ctx.fillText(piName+' ('+trail[trail.length-1].x.toFixed(0)+','+trail[trail.length-1].y.toFixed(0)+')',tx(trail[trail.length-1].x)+6,ty(trail[trail.length-1].y)-4);
+  ctx.globalAlpha=1;
+}
+
+function drawTrailSeg(ctx,trail,start,end,tx,ty,dimC){
+  for(let i=start+1;i<end;i++){
+    const t=(i-start)/(end-start);
+    ctx.strokeStyle=dimC;ctx.globalAlpha=0.15+t*0.85;
+    ctx.beginPath();ctx.moveTo(tx(trail[i-1].x),ty(trail[i-1].y));ctx.lineTo(tx(trail[i].x),ty(trail[i].y));ctx.stroke();
+  }
+}
+
+let _otherPlayerPos={};
+function loadOtherPlayerPositions(){
+  const others=players.filter(p=>p.name!==piName);
+  if(!others.length)return;
+  if(ws&&ws.readyState===1){
+    others.forEach(p=>{ws.send(JSON.stringify({type:'player_info',payload:p.name}))});
+  }else{
+    Promise.all(others.map(p=>ap('/api/playerinfo?player='+encodeURIComponent(p.name)).then(r=>r.json()).then(d=>{if(d.position){const xy=d.position.split(',');_otherPlayerPos[p.name]={x:parseFloat(xy[0]),y:parseFloat(xy[1])}}}).catch(()=>{})));
+  }
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const cv=qs('#pi-trail-canvas');if(!cv)return;
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    if(!_trailData)return;
+    const f=e.deltaY>0?0.9:1.1;
+    _trailZoom=Math.max(0.5,Math.min(20,_trailZoom*f));
+    redrawTrailCanvas();
+  },{passive:false});
+  cv.addEventListener('mousedown',e=>{
+    _trailDrag=true;_trailDragX=e.clientX-_trailPanX;_trailDragY=e.clientY-_trailPanY;cv.style.cursor='grabbing';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!_trailDrag)return;
+    _trailPanX=e.clientX-_trailDragX;_trailPanY=e.clientY-_trailDragY;
+    redrawTrailCanvas();
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!_trailDrag)return;_trailDrag=false;qs('#pi-trail-canvas').style.cursor='grab';
+  });
+  cv.addEventListener('touchstart',e=>{
+    if(!_trailData||e.touches.length!==1)return;
+    _trailDrag=true;_trailDragX=e.touches[0].clientX-_trailPanX;_trailDragY=e.touches[0].clientY-_trailPanY;
+  },{passive:true});
+  cv.addEventListener('touchmove',e=>{
+    if(!_trailDrag||e.touches.length!==1)return;
+    _trailPanX=e.touches[0].clientX-_trailDragX;_trailPanY=e.touches[0].clientY-_trailDragY;
+    redrawTrailCanvas();
+  },{passive:true});
+  cv.addEventListener('touchend',()=>{_trailDrag=false});
+});
+
+function updateJoinTimeDisplay(){
+  let changed=false;
+  players=players.filter(p=>{
+    if(_joinTimes[p.name]===undefined){
+      changed=true;
+      const el=qs('#lt-'+CSS.escape(p.name));
+      if(el)el.closest('.pc')?.remove();
+      selPlayers=selPlayers.filter(n=>n!==p.name);
+      return false;
+    }
+    return true;
+  });
+  if(changed){
+    qs('#pc').textContent='('+players.length+' 人)';
+    updateSelBar(qs('#selbar'));
+    if(!players.length)qs('#np').style.display='block';
+  }
+  players.forEach(p=>{
+    const el=qs('#lt-'+CSS.escape(p.name));
+    if(!el)return;
+    const sec=Math.floor(_joinTimes[p.name]);
+    const min=Math.floor(sec/60);
+    const h=Math.floor(min/60);
+    if(h>0)el.textContent=' · '+h+'时'+(min%60)+'分';
+    else if(min>0)el.textContent=' · '+min+'分'+(sec%60)+'秒';
+    else el.textContent=' · '+sec+'秒';
+  });
+}
+async function loadLoginTimes(){}
+
+// ---- THEME ----
+function toggleTheme(){
+  document.body.classList.toggle('l');
+  localStorage.setItem('theme',document.body.classList.contains('l')?'light':'dark');
+}
+(function(){if(localStorage.getItem('theme')==='light')document.body.classList.add('l')})();
+
+// ---- BROADCAST ----
+function openBc(){qs('#bc-modal').classList.add('on');qs('#bc-msg').value='';qs('#bc-msg').focus()}
+function closeBc(){qs('#bc-modal').classList.remove('on')}
+function qbc(t){qs('#bc-msg').value=t}
+async function sendBc(){
+  const m=qs('#bc-msg').value.trim();
+  if(!m)return;
+  rc('/broadcast "'+m+'"');closeBc();
+}
+
+// ---- PLAYER INFO ----
+let piName='';
+function renderItemSpan(item, idToName, prefixIdToName){
+  const name=idToName[String(item.netID)]||('ID:'+item.netID);
+  const prefix=prefixIdToName[String(item.prefix)]||'';
+  const stk=item.stack>1?' <small>×'+item.stack+'</small>':'';
+  const pre=prefix?' <small style="color:var(--dim)">'+prefix+'</small>':'';
+  const fav=item.favorited?' <small style="color:var(--yellow)">★</small>':'';
+  return '<span style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2px 6px" title="ID:'+item.netID+(item.prefix?', Prefix:'+item.prefix:'')+'">'+esc(name)+pre+stk+fav+'</span>';
+}
+async function showPi(name){
+  if(window._piTimer)clearInterval(window._piTimer);
+  piName=name;qs('#pi-name').textContent=name;
+  qs('#pi-group').textContent='查询中...';qs('#pi-ip').textContent='-';qs('#pi-pos').textContent='-';qs('#pi-login').textContent='-';
+  qs('#pi-muted').style.display='none';
+  ['pi-inv','pi-armor','pi-dyes','pi-buffs','pi-piggy','pi-safe','pi-forge'].forEach(id=>{const el=qs('#'+id);if(el)el.style.display='none'});
+  qs('#pi-modal').classList.add('on');
+  try{
+    const r=await ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:'/userinfo "'+name+'"'})});
+    const d=await r.json();
+    const txt=Array.isArray(d.response)?d.response.join('\n'):(d.response||'');
+    txt.split('\n').forEach(l=>{
+      if(l.includes('Group'))qs('#pi-group').textContent=l.split(':')[1]?.trim()||'-';
+      else if(l.includes('Last login'))qs('#pi-login').textContent=l.split(':')[1]?.trim()||'-';
+    });
+  }catch(e){}
+  try{
+    const r=await ap('/api/playerinfo?player='+encodeURIComponent(name));
+    const d=await r.json();
+    if(d.status!=='200')return;
+    if(d.ip)qs('#pi-ip').textContent=d.ip;
+    if(d.group)qs('#pi-group').textContent=d.group;
+    if(d.position)qs('#pi-pos').textContent=d.position;
+    if(d.muted)qs('#pi-muted').style.display='inline';
+    loadPlayerTrail(name);
+    // Build ID->name lookup
+    const idToName={};
+    ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+    const buffIdToName={};
+    BUFFS.forEach(b=>{buffIdToName[String(b.id)]=b.n});
+    const prefixIdToName={};
+    try{
+      const pr=await fetch('/prefixdb.json');const pdb=await pr.json();
+      if(pdb.prefixes)pdb.prefixes.forEach(p=>{prefixIdToName[String(p.id)]=p.n});
+    }catch(e){}
+    
+    // v4 API returns items object
+    const items=d.items||{};
+    
+    // inventory (array of {netID, prefix, stack, favorited})
+    if(items.inventory&&items.inventory.length){
+      qs('#pi-inv').style.display='block';
+      qs('#pi-items').innerHTML=items.inventory.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');
+    }
+    // equipment (array of {netID, prefix, stack, favorited})
+    if(items.equipment&&items.equipment.length){
+      qs('#pi-armor').style.display='block';
+      qs('#pi-armor-items').innerHTML=items.equipment.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');
+    }
+    // dyes (array of {netID, prefix, stack, favorited})
+    if(items.dyes&&items.dyes.length){
+      qs('#pi-dyes').style.display='block';
+      qs('#pi-dye-items').innerHTML=items.dyes.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');
+    }
+    // piggy bank (array of {netID, prefix, stack, favorited})
+    if(items.piggy&&items.piggy.length){
+      const el=qs('#pi-piggy');if(el){el.style.display='block';el.querySelector('.pi-storage-items').innerHTML=items.piggy.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');}
+    }
+    // safe (array of {netID, prefix, stack, favorited})
+    if(items.safe&&items.safe.length){
+      const el=qs('#pi-safe');if(el){el.style.display='block';el.querySelector('.pi-storage-items').innerHTML=items.safe.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');}
+    }
+    // forge (array of {netID, prefix, stack, favorited})
+    if(items.forge&&items.forge.length){
+      const el=qs('#pi-forge');if(el){el.style.display='block';el.querySelector('.pi-storage-items').innerHTML=items.forge.map(i=>renderItemSpan(i,idToName,prefixIdToName)).join('');}
+    }
+    // buffs (comma-separated IDs)
+    if(d.buffs){
+      const bs=d.buffs.split(',').map(s=>s.trim()).filter(s=>s&&s!=='0');
+      if(bs.length){
+        qs('#pi-buffs').style.display='block';
+        qs('#pi-buff-items').innerHTML=bs.map(s=>{
+          const name=buffIdToName[s]||('ID:'+s);
+          return '<span style="background:var(--card);border:1px solid var(--border);border-radius:4px;padding:2px 6px" title="ID:'+s+'">'+esc(name)+'</span>';
+        }).join('');
+      }
+    }
+  }catch(e){}
+  window._piTimer=setInterval(()=>{if(!piName||!qs('#pi-modal').classList.contains('on'))return;if(ws&&ws.readyState===1){ws.send(JSON.stringify({type:'player_info',payload:piName}));loadOtherPlayerPositions()}else{refreshPiPos(piName);loadPlayerTrail(piName);loadOtherPlayerPositions()}},5000);
+}
+function refreshPiPos(name){
+  ap('/api/playerinfo?player='+encodeURIComponent(name)).then(r=>r.json()).then(d=>{if(d.position)qs('#pi-pos').textContent=d.position}).catch(()=>{});
+}
+function closePi(){if(window._piTimer)clearInterval(window._piTimer);window._piTimer=null;piName='';qs('#pi-modal').classList.remove('on')}
+
+function onWSPlayerInfo(d){
+  if(!d||!d.player)return;
+  if(d.info&&d.info.position){
+    const xy=d.info.position.split(',');
+    _otherPlayerPos[d.player]={x:parseFloat(xy[0]),y:parseFloat(xy[1])};
+  }
+  if(!piName||d.player!==piName){
+    if(_trailData&&qs('#pi-trail-wrap').style.display!=='none')redrawTrailCanvas();
+    return;
+  }
+  if(d.info){
+    const info=d.info;
+    if(info.position)qs('#pi-pos').textContent=info.position;
+    if(info.group)qs('#pi-group').textContent=info.group;
+    if(info.ip)qs('#pi-ip').textContent=info.ip;
+    if(info.muted)qs('#pi-muted').style.display='inline';
+  }
+  if(d.trail&&d.trail.length){
+    qs('#pi-trail-wrap').style.display='block';
+    qs('#pi-trail-count').textContent='('+d.trail.length+'点)';
+    drawTrail(d.trail);
+  }
+}
+
+function onWSPlayerTp(d){
+  if(!d)return;
+  if(d.error){
+    t('✗ 传送失败: '+d.error,'e');
+    return;
+  }
+  if(d.result){
+    const r=d.result;
+    if(r.response){
+      const resp=Array.isArray(r.response)?r.response.join(' '):r.response;
+      if(resp.trim())t('✓ '+resp.trim(),'o');
+      else t('✓ 传送完成','o');
+    }else if(r.error){
+      t('✗ '+r.error,'e');
+    }else{
+      t('✓ 传送完成','o');
+    }
+  }
+}
+
+async function copyPlayerData(){
+  try{
+    const r=await ap('/api/playerinfo?player='+encodeURIComponent(piName));
+    const d=await r.json();
+    if(d.status!=='200')return t('获取数据失败','e');
+    
+    const idToName={};
+    ITEMS.forEach(i=>{idToName[String(i.id)]=i.n});
+    const prefixIdToName={};
+    try{
+      const pr=await fetch('/prefixdb.json');const pdb=await pr.json();
+      if(pdb.prefixes)pdb.prefixes.forEach(p=>{prefixIdToName[String(p.id)]=p.n});
+    }catch(e){}
+    
+    const items=d.items||{};
+    let text='=== '+piName+' ===\n';
+    text+='IP: '+(d.ip||'-')+'\n';
+    text+='Group: '+(d.group||'-')+'\n';
+    text+='Position: '+(d.position||'-')+'\n\n';
+    
+    if(items.inventory&&items.inventory.length){
+      text+='--- Inventory ('+items.inventory.length+') ---\n';
+      items.inventory.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        const prefix=prefixIdToName[String(i.prefix)]||'';
+        text+=name+(prefix?' ('+prefix+')':'')+' x'+i.stack+(i.favorited?' ★':'')+'\n';
+      });
+      text+='\n';
+    }
+    if(items.equipment&&items.equipment.length){
+      text+='--- Equipment ('+items.equipment.length+') ---\n';
+      items.equipment.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        const prefix=prefixIdToName[String(i.prefix)]||'';
+        text+=name+(prefix?' ('+prefix+')':'')+'\n';
+      });
+      text+='\n';
+    }
+    if(items.dyes&&items.dyes.length){
+      text+='--- Dyes ('+items.dyes.length+') ---\n';
+      items.dyes.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        text+=name+'\n';
+      });
+      text+='\n';
+    }
+    if(items.piggy&&items.piggy.length){
+      text+='--- Piggy Bank ('+items.piggy.length+') ---\n';
+      items.piggy.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        const prefix=prefixIdToName[String(i.prefix)]||'';
+        text+=name+(prefix?' ('+prefix+')':'')+' x'+i.stack+'\n';
+      });
+      text+='\n';
+    }
+    if(items.safe&&items.safe.length){
+      text+='--- Safe ('+items.safe.length+') ---\n';
+      items.safe.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        const prefix=prefixIdToName[String(i.prefix)]||'';
+        text+=name+(prefix?' ('+prefix+')':'')+' x'+i.stack+'\n';
+      });
+      text+='\n';
+    }
+    if(items.forge&&items.forge.length){
+      text+='--- Forge ('+items.forge.length+') ---\n';
+      items.forge.forEach(i=>{
+        const name=idToName[String(i.netID)]||'ID:'+i.netID;
+        const prefix=prefixIdToName[String(i.prefix)]||'';
+        text+=name+(prefix?' ('+prefix+')':'')+' x'+i.stack+'\n';
+      });
+      text+='\n';
+    }
+    if(d.buffs){
+      const bs=d.buffs.split(',').map(s=>s.trim()).filter(s=>s&&s!=='0');
+      if(bs.length){
+        text+='--- Buffs ('+bs.length+') ---\n';
+        bs.forEach(s=>{text+='ID:'+s+'\n'});
+      }
+    }
+    
+    try{await navigator.clipboard.writeText(text)}catch(e){
+      const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    }
+    t('已复制 '+piName+' 全部数据','o');
+  }catch(e){t('复制失败: '+e.message,'e')}
+}
+
+// ---- FILTER ----
+let curFilter='all';
+function setFilter(f,btn){
+  curFilter=f;
+  document.querySelectorAll('.fb button[data-f]').forEach(b=>b.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+  renderPlayers('#pl','#selbar');
+}
+
+// Update renderPlayers to support filter
+function getFilteredPlayers(){
+  if(curFilter==='all')return players;
+  return players.filter(p=>{
+    const g=p.group||'';
+    return g.toLowerCase()===curFilter.toLowerCase();
+  });
+}
+
+// ---- SELECT ALL/NONE ----
+function selAll(){
+  if(!players.length)return;
+  selPlayers=players.map(p=>p.name);
+  renderPlayers('#pl','#selbar');
+}
+function selNone(){
+  selPlayers=[];
+  renderPlayers('#pl','#selbar');
+}
+
+// ---- QTY BUTTONS ----
+function setQty(n){qs('#gm-iq').value=n}
+
+// ---- RECENT ITEMS ----
+function addRecent(id,name){
+  let r=JSON.parse(localStorage.getItem('rItems')||'[]');
+  r=r.filter(i=>i.id!==id);
+  r.unshift({id,name});
+  if(r.length>20)r=r.slice(0,20);
+  localStorage.setItem('rItems',JSON.stringify(r));
+  if(qs('#gm-tabs')?.querySelector('.on')?.dataset?.tab==='recent')renderRecent();
+}
+function renderRecent(){
+  const el=qs('#gm-items');
+  const r=JSON.parse(localStorage.getItem('rItems')||'[]');
+  if(!r.length){el.innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">暂无最近发放记录</div>';return}
+  el.innerHTML=r.map(i=>{
+    const sel=selItem&&selItem.id===i.id?' sel':'';
+    return '<div class="it sel'+sel+'" data-id="'+i.id+'" data-name="'+esc(i.name)+'"><div class="in">'+esc(i.name)+'</div><div class="ii">ID:'+i.id+'</div></div>';
+  }).join('');
+  el.querySelectorAll('.it').forEach(d=>{
+    d.addEventListener('click',()=>{
+      el.querySelectorAll('.it').forEach(x=>x.classList.remove('sel'));
+      d.classList.add('sel');
+      selItem={id:parseInt(d.dataset.id),name:d.dataset.name};
+      qs('#gm-sel').textContent=selItem.name+' (ID:'+selItem.id+')';
+      qs('#gm-sel').className='sel-name';
+    });
+  });
+}
+// Add tab for recent items in give modal
+function addRecentTab(){
+  const el=qs('#gm-cats');
+  const b=document.createElement('button');b.dataset.c='_recent';b.textContent='🕐 最近';
+  el.appendChild(b);
+  b.addEventListener('click',()=>{
+    el.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    gmCurCat='_recent';
+    renderItems();
+  });
+}
+// Override renderItems to handle '_recent' tab
+const _origRenderItems=renderItems;
+renderItems=function(){
+  if(gmCurCat==='_recent'){renderRecent();return}
+  _origRenderItems();
+};
+// Override openGiveFor to add recent tab and reset
+const _origOpenGiveFor=openGiveFor;
+openGiveFor=function(target){
+  _origOpenGiveFor(target);
+  addRecentTab();
+};
+// Override giveItem to save to recent
+const _origGiveItem=giveItem;
+giveItem=async function(){
+  const item=selItem;
+  await _origGiveItem();
+  if(item)addRecent(item.id,item.name);
+};
+
+// ---- WORLD MODE CYCLE ----
+const WORLD_MODES=['normal','expert','master'];
+let wmIdx=1;
+function cycleWorldMode(){
+  rc('/worldmode '+WORLD_MODES[wmIdx]);
+  wmIdx=(wmIdx+1)%WORLD_MODES.length;
+}
+
+// ---- COMMAND AUTOCOMPLETE ----
+const CMDS=['save','off','off-nosave','restart','reload','heal','kill','butcher','spawn','tp','tphere','tpnpc','tppos','pos','tpallow','home',
+  'give','item','clear','buff','gbuff','godmode','antibuild','grow','protectspawn','evil',
+  'time day','time night','time noon','time midnight','time dawn','time dusk','time settle','time now',
+  'time 4:30','time 6:00','time 12:00','time 19:30','time 0:00',
+  'maxspawns','setspawn','setdungeon','settle','spawnrate','wind',
+  'broadcast','say','kick','ban add','ban del','unban','mute',
+  'user add','user del','user pass','user group','user info',
+  'group add','group del','group addperm','group delperm','group parent','group color','group list','group listperm',
+  'playing','who','whois','userinfo','accountinfo','group list','user list',
+  'region set','region define','region delete','region allow',
+  'worldmode normal','worldmode expert','worldmode master','hardmode',
+  'worldevent bloodmoon','worldevent eclipse','worldevent fullmoon','worldevent meteor','worldevent sandstorm',
+  'worldevent rain slime','worldevent rain coin','worldevent lanternsnight','worldevent meteorshower',
+  'worldevent invasion goblins','worldevent invasion pirates','worldevent invasion snowmen','worldevent invasion pumpkinmoon','worldevent invasion frostmoon','worldevent invasion martians',
+  'spawnboss','spawnmob','spawnrate','worldinfo','serverinfo','version','seed','help','motd','rules','passwd','password',
+  'login','logout','register','su','sudo','tempgroup','displaylogs',
+  'serverpassword','whitelist','renamenpc','clearangler',
+  'forcehalloween','forcexmas','overridessc','savessc','uploadssc',
+  'annoy','rocket','firework','slap','me','party','reply','rest','whisper','wallow',
+  'warp','death','pvpdeath','alldeath','allpvpdeath','bossdamage',
+  'sync','respawn','aliases','checkupdates','dump-reference-data',
+  'itemban','projban','tileban'];
+let acIdx=-1;
+function showAc(){
+  const v=qs('#ci').value.trim().toLowerCase();
+  const el=qs('#ac');
+  if(!v){el.classList.remove('on');return}
+  const m=CMDS.filter(c=>c.startsWith(v)||c.includes(' '+v)||c.includes(v));
+  if(!m.length){el.classList.remove('on');return}
+  el.innerHTML=m.slice(0,50).map((c,i)=>'<div class="'+(i===0?'s':'')+'">/'+esc(c)+'</div>').join('');
+  el.classList.add('on');acIdx=0;
+  el.querySelectorAll('div').forEach((d,i)=>{
+    d.onclick=()=>{qs('#ci').value=d.textContent;el.classList.remove('on');qs('#ci').focus()};
+  });
+}
+function ciLive(){showAc()}
+function ciKey(e){
+  if(e.key==='Enter'){qs('#ac').classList.remove('on');rc();return}
+  if(e.key==='Tab'){e.preventDefault();showAc();return}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    const el=qs('#ac');if(!el.classList.contains('on'))return;
+    e.preventDefault();
+    const items=el.querySelectorAll('div');
+    items.forEach(d=>d.classList.remove('s'));
+    if(e.key==='ArrowDown')acIdx=Math.min(acIdx+1,items.length-1);
+    else acIdx=Math.max(acIdx-1,0);
+    items[acIdx].classList.add('s');
+    items[acIdx].scrollIntoView({block:'nearest'});
+    return;
+  }
+  if(e.key==='Escape'){qs('#ac').classList.remove('on');return}
+  if(e.key.length===1)return; // let oninput handle live filtering
+  qs('#ac').classList.remove('on');
+}
+
+// ---- LOG ----
+let logEntries=[];
+function addLog(cmd,ok){
+  const t=new Date().toLocaleTimeString();
+  logEntries.unshift({t,cmd,ok});
+  if(logEntries.length>200)logEntries=logEntries.slice(0,200);
+  renderLog();
+}
+function renderLog(){
+  const el=qs('#log-box');
+  if(!el)return;
+  el.innerHTML=logEntries.map(e=>{
+    const cls=e.ok?'o':'e';
+    return '<div class="'+cls+'">['+esc(e.t)+'] '+(e.ok?'✓':'✗')+' '+esc(e.cmd)+'</div>';
+  }).join('')||'暂无记录';
+}
+
+// Hook into rc to log commands
+const _origRc=rc;
+rc=function(cmd){
+  let c=cmd;
+  if(!c){const i=qs('#ci');c=i.value.trim();i.value=''}
+  if(!c)return;
+  const r=_origRc(c);
+  if(r&&r.then)r.then(()=>addLog(c,true)).catch(()=>addLog(c,false));
+  else addLog(c,true);
+};
+
+// ---- WORLD EVENT STATE ----
+let evtState=JSON.parse(localStorage.getItem('evtState')||'{"bloodmoon":false,"eclipse":false,"fullmoon":false,"sandstorm":false,"rain":false,"lanterns":false,"meteorshower":false}');
+function saveEvtState(){localStorage.setItem('evtState',JSON.stringify(evtState))}
+function evtClick(name){
+  evtState[name]=!evtState[name];
+  saveEvtState();
+  const b=qs('[data-evt="'+name+'"]');
+  if(b)b.classList.toggle('on');
+  const eventName={bloodmoon:'bloodmoon',eclipse:'eclipse',fullmoon:'fullmoon',sandstorm:'sandstorm',rain:'rain',lanterns:'lanternsnight',meteorshower:'meteorshower'}[name];
+  apiEvent(eventName).then(r=>{
+    if(r.response)t(r.response.join(' '));
+    else t(name+' 已切换');
+  });
+}
+function toggleSection(el){
+  el.classList.toggle('closed');
+  const qa=el.nextElementSibling;
+  if(qa)qa.classList.toggle('closed');
+  // Save state to localStorage
+  const states=JSON.parse(localStorage.getItem('sectionStates')||'{}');
+  states[el.textContent.trim()]=el.classList.contains('closed');
+  localStorage.setItem('sectionStates',JSON.stringify(states));
+}
+function initSections(){
+  const states=JSON.parse(localStorage.getItem('sectionStates')||'{}');
+  document.querySelectorAll('.sec-collapsible').forEach(el=>{
+    const name=el.textContent.trim();
+    if(states[name]){
+      el.classList.add('closed');
+      const qa=el.nextElementSibling;
+      if(qa)qa.classList.add('closed');
+    }
+  });
+}
+let swState={antibuild:false,protectspawn:false,godmode:false};
+function toggleSwitch(name){
+  swState[name]=!swState[name];
+  const b=qs('[data-sw="'+name+'"]');
+  if(b)b.classList.toggle('on');
+  const cmd={'antibuild':'/antibuild','protectspawn':'/protectspawn','godmode':'/godmode'}[name];
+  rc(cmd);
+}
+// ---- AUTOSAVE ----
+let autoSaveOn=true;
+async function toggleAutoSave(){
+  autoSaveOn=!autoSaveOn;
+  try{
+    const r=await ap('/api/autosave?enable='+autoSaveOn);
+    const d=await r.json();
+    if(d.status==='200')t(autoSaveOn?'自动保存已开启':'自动保存已关闭');
+    else {autoSaveOn=!autoSaveOn;t('操作失败','e')}
+  }catch(e){autoSaveOn=!autoSaveOn;t('操作失败','e')}
+}
+
+// ---- MOTD / RULES ----
+async function loadMotdRules(){
+  const el=qs('#mr');if(!el)return;
+  el.style.display='block';el.innerHTML='加载中...';
+  try{
+    const [mr,rr]=await Promise.all([
+      ap('/api/motd').then(r=>r.json()),
+      ap('/api/rules').then(r=>r.json())
+    ]);
+    const motd=Array.isArray(mr.motd)?mr.motd.join('<br>'):'';
+    const rules=Array.isArray(rr.rules)?rr.rules.join('<br>'):'';
+    el.innerHTML='<div class="sec" style="font-size:11px;margin-bottom:4px">MOTD</div><div>'+motd+'</div>'+
+      (rules?'<div class="sec" style="font-size:11px;margin:8px 0 4px">规则</div><div>'+rules+'</div>':'');
+  }catch(e){el.innerHTML='<div style="color:var(--red)">获取失败</div>'}
+}
+
+async function loadLogs(){
+  const el=qs('#log-box');if(!el)return;
+  el.innerHTML='';
+  // If WebSocket is connected, logs are streamed automatically
+  if(ws&&ws.readyState===WebSocket.OPEN){
+    el.innerHTML='<div style="color:var(--dim)">WebSocket 已连接，日志实时推送中...</div>';
+    return;
+  }
+  // Fallback to SSE
+  loadLogsSSE();
+}
+
+async function loadLogsSSE(){
+  const el=qs('#log-box');if(!el)return;
+  el.innerHTML='<div style="color:var(--dim)">连接中...</div>';
+  // Close previous SSE if exists
+  if(window._logSse){window._logSse.close();window._logSse=null}
+  const sse=new EventSource('/api/logs/stream');
+  window._logSse=sse;
+  el.innerHTML='';
+  sse.onmessage=function(e){
+    appendLog(e.data);
+  };
+  sse.onerror=function(){
+    el.innerHTML='<div style="color:var(--red)">连接断开，正在重连...</div>';
+    sse.close();
+    window._logSse=null;
+    // Retry after 3 seconds
+    setTimeout(loadLogs,3000);
+  };
+}
+
+async function runTests(){
+  const el=qs('#test-results');
+  if(!el)return;
+  el.style.display='block';
+  el.innerHTML='<div style="color:var(--dim)">正在运行测试...</div>';
+  
+  try{
+    const r=await ap('/api/test');
+    const d=await r.json();
+    
+    let html='<div style="margin-bottom:8px;font-weight:bold">测试结果: ';
+    html+=`<span style="color:var(--green)">${d.passed} 通过</span>`;
+    if(d.failed>0) html+=` / <span style="color:var(--red)">${d.failed} 失败</span>`;
+    html+=` / ${d.total} 总计</div>`;
+    
+    d.results.forEach(r=>{
+      const icon=r.passed?'✓':'✗';
+      const color=r.passed?'var(--green)':'var(--red)';
+      html+=`<div style="color:${color}">${icon} ${r.name}: ${r.message}</div>`;
+    });
+    
+    el.innerHTML=html;
+    
+    if(d.failed>0){
+      t('测试完成: '+d.passed+' 通过, '+d.failed+' 失败','e');
+    }else{
+      t('测试完成: 全部通过','o');
+    }
+  }catch(e){
+    el.innerHTML='<div style="color:var(--red)">测试失败: '+e.message+'</div>';
+    t('测试失败','e');
+  }
+}
+
+async function loadWorldState(){
+  const el=qs('#ws');
+  if(!el)return;
+  el.innerHTML='加载中...';
+  try{
+    const r=await ap('/api/rawcmd',{method:'POST',body:JSON.stringify({cmd:'/worldinfo'})});
+    const d=await r.json();
+    const resp=Array.isArray(d.response)?d.response.join('\n'):(d.response||'');
+    const lines=resp.split('\n').filter(l=>l.trim()&&!l.includes('Server')&&!l.includes('players')&&!l.includes('Accepting'));
+    el.innerHTML=lines.map(l=>'<div>'+esc(l.trim())+'</div>').join('')||'<div style="color:var(--dim)">无可用的状态信息</div>';
+  }catch(e){el.innerHTML='<div style="color:var(--red)">获取状态失败</div>'}
+}
+
+// Init
+function init(){
+  initSections();loadGroupOptions();loadUsers();loadGroups();loadWorldList();loadPresets();loadBuffDB();loadPrefixDB();loadFullDB();
+  if(!window._jtD)window._jtD=setInterval(updateJoinTimeDisplay,1000);
+  for(const[name,state]of Object.entries(evtState)){
+    const b=qs('[data-evt="'+name+'"]');
+    if(b)b.classList.toggle('on',state);
+  }
+  if(!ws||ws.readyState!==WebSocket.OPEN){
+    loadStatus();refreshPlayerList();
+    if(!window._pi)window._pi=setInterval(refreshPlayerList,5000);
+    if(!window._ti)window._ti=setInterval(loadStatus,10000);
+    if(!window._jt)window._jt=setInterval(()=>{loadJoinTimes()},30000);
+  }
+}
+
+(async function(){
+  try{
+    const r=await fetch('/api/check',{credentials:'include'});
+    const d=await r.json();
+    if(d.ok){token='x';qs('#lg').classList.add('h');connectWebSocket();init()}
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+FROM alpine:3.19
+WORKDIR /app
+COPY panel .
+EXPOSE 4891
+STOPSIGNAL SIGTERM
+CMD ["./panel"]

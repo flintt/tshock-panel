@@ -1,0 +1,50 @@
+services:
+  terraria:
+    image: ghcr.io/pryaxis/tshock:stable
+    container_name: terraria-server
+    ports:
+      - "7777:7777"
+      - "7878:7878"
+    volumes:
+      - ./tshock:/tshock
+      - ./worlds:/worlds
+      - ./plugins:/plugins
+      - ./presets:/presets
+      - ./worldbackups:/worldbackups
+      - /etc/localtime:/etc/localtime:ro
+    command: -world /worlds/MyWorld.wld -autocreate 2 -worldname "MyWorld" -maxplayers 8 -difficulty 0
+    stdin_open: true
+    tty: true
+    networks:
+      - default
+    restart: unless-stopped
+
+  panel:
+    build: ./panel
+    container_name: terraria-panel
+    init: true
+    ports:
+      - "4891:4891"
+    environment:
+      - TSHOCK_API_URL=http://terraria-server:7878
+      - TSHOCK_APP_TOKEN=your-rest-token-here
+      - PANEL_PORT=4891
+      - CONTAINER_NAME=terraria-server
+      - SERVER_PORT=7777
+      - API_PORT=7878
+      - NETWORK_NAME=terraria-server_default
+      - HOST_BASE_PATH=/root/terraria-server  # 修改为你的实际路径
+      - TRAIL_MAX_PER_PLAYER=1000
+    volumes:
+      - ./panel/static:/app/static
+      - ./tshock:/tshock:ro
+      - ./worlds:/worlds
+      - ./presets:/presets
+      - ./trails:/trails
+      - ./worldbackups:/worldbackups
+      - ./docker-compose.yml:/app/docker-compose.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - default
+    restart: unless-stopped
+
